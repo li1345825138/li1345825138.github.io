@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Web Pages</title>
+	<meta http-equiv="content-Type" content="text/html; charset=UTF-8"/>
+	<link rel="stylesheet" type="text/css" href="render.css">
+	<script type="text/javascript"><!--
+		window.addEventListener('load', function(){
+		var imgs=document.getElementsByTagName('img');
+		for(var i=0; i<imgs.length; i++)
+			if(imgs[i].id.startsWith('thumb-'))
+				imgs[i].src=imgs[i].id.replace('thumb-','')+'/thumb.jpg';
+		}, false);
+	-->
+	</script>
+</head>
+
+<body>
+	<!-- HEADER -->
+	<h1>Web Pages</h1>
+	<div class="wrapper">
+		<div class="row">
+			<a class="three columns game" href="/zelda-botw/"><img src="thumb.png" id="thumb-zelda-botw" /><div>The legend of Zelda: Breath of the wild</div></a>
+			<a class="three columns game" href="/zelda-totk/"><img src="thumb.png" id="thumb-zelda-totk" /><div>The legend of Zelda: Tears of The Kingdom</div></a>
+			<a class="three columns game" href="/blog/"><img src="thumb.png" id="thumb-blog" /><div>My Personal Blog</div></a>
+		</div>
+		<hr/>
+	</div>
+</body>
+</html>

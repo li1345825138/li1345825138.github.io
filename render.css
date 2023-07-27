@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700,800');
+
+body{
+	background-color:#252525;
+	color:#e8e8e8;
+	font-family:'Open Sans',sans-serif;
+	margin:0;
+	font-size:14px
+}
+
+h1{text-align:center;color:#49c5ff;margin:3% 0;}
+
+.wrapper{
+	max-width:960px;
+	margin:0 auto;
+}
+.row{
+	display:flex;/* or inline-flex */
+	flex-direction:row;
+	justify-content:space-between;
+	margin-bottom:30px;
+}
+.three.columns{flex-basis:32%}
+.four.columns{flex-basis:23.5%}
+.game{
+	color:white;
+	text-decoration:none;
+}
+.game img{
+	width:100%;
+	opacity:.92;
+	margin:0;
+	display:block;
+}
+.game a{display:block}
+.game:hover img{
+	opacity:1
+}
+.game{background-color:#353535}
+.game:hover{background-color:#434343}
+.game>div{padding: 15px 10px}
+.game b{
+	background-color:yellow;
+	color:black;
+	font-size:80%;
+	padding: 2px 4px;
+	border-radius:3px;
+}
+hr{
+	border:none;
+	border-top:1px solid #333;
+}
+h6{
+	font-size:85%;
+	font-weight:normal;
+	text-align:center;
+	color:#696969;
+	line-height:2
+}
+h6 a{
+	color:#999;
+	text-decoration:none;
+	border-bottom:1px solid #555
+}
+h6 a:hover{
+	color:white;
+	border-color:#9cc933;
+}
