@@ -1,8 +1,9 @@
 /*
-	The legend of Zelda: Tears of the Kingdom savegame editor - Pouch class (last update 2023-07-11)
+	The legend of Zelda: Tears of the Kingdom savegame editor - Pouch class (last update 2023-09-02)
 
 	by Marc Robledo 2023
 	item names compiled by Echocolat, Exincracci, HylianLZ and Karlos007
+	filterable item dropdown by xiyuesaves
 */
 
 
@@ -184,23 +185,28 @@ Pouch._onChangeInputTextFix=function(evt){
 
 
 const ICON_PATH='./assets/item_icons/';
-Pouch.updateItemIcon=function(item){
-	if(item.id==='Parasail'){
-		var parasailPattern=typeof SavegameEditor.parasailPattern.value==='string'? SavegameEditor.parasailPattern.value : hashReverse(SavegameEditor.parasailPattern.value);
-		if(parasailPattern!=='Default'){
-			item._htmlIcon.src=ICON_PATH+item.category+'/'+item.id+'_'+parasailPattern+'.png';
-		}else{
-			item._htmlIcon.src=ICON_PATH+item.category+'/'+item.id+'.png';
+Pouch.getItemIcon = function (item) {
+	if (item.id === 'Parasail') {
+		var parasailPattern = typeof SavegameEditor.parasailPattern.value === 'string' ? SavegameEditor.parasailPattern.value : hashReverse(SavegameEditor.parasailPattern.value);
+		if (parasailPattern !== 'Default') {
+			return ICON_PATH + item.category + '/' + item.id + '_' + parasailPattern + '.png';
+		} else {
+			return ICON_PATH + item.category + '/' + item.id + '.png';
 		}
-	}else if(item.category==='armors')
-		if(item.dyeColor===hash('None'))
-			item._htmlIcon.src=ICON_PATH+item.category+'/'+item.getBaseId()+'.png';
-		else
-			item._htmlIcon.src=ICON_PATH+item.category+'/dye/'+item.getBaseId()+'_'+hashReverse(item.dyeColor)+'.png';
-	else if(item.category==='food' && item.id==='Item_Cook_C_17' && Item.VALID_ELIXIR_EFFECTS.indexOf(hashReverse(item.effect))!==-1)
-		item._htmlIcon.src=ICON_PATH+item.category+'/Item_Cook_C_17_'+hashReverse(item.effect)+'.png';
-	else
-		item._htmlIcon.src=ICON_PATH+item.category+'/'+item.id+'.png';
+	} else if (item.category === 'armors') {
+		if (item.dyeColor === hash('None')) {
+			return ICON_PATH + item.category + '/' + item.getBaseId() + '.png';
+		} else {
+			return ICON_PATH + item.category + '/dye/' + item.getBaseId() + '_' + hashReverse(item.dyeColor) + '.png';
+		}
+	} else if (item.category === 'food' && item.id === 'Item_Cook_C_17' && Item.VALID_ELIXIR_EFFECTS.indexOf(hashReverse(item.effect)) !== -1) {
+		return ICON_PATH + item.category + '/Item_Cook_C_17_' + hashReverse(item.effect) + '.png';
+	} else {
+		return ICON_PATH + item.category + '/' + item.id + '.png';
+	}
+};
+Pouch.updateItemIcon=function(item){
+	item._htmlIcon.src=Pouch.getItemIcon(item);
 };
 Pouch.updateItemRow=function(item){
 	if(!item._htmlRow){
@@ -216,7 +222,6 @@ Pouch.updateItemRow=function(item){
 
 		item._htmlItemId=document.createElement('span');
 		item._htmlItemId.className='item-name clickable';
-		item._htmlItemId.id='item-name-'+item.category+'-'+item.index;
 		item._htmlItemId.innerHTML=item.getItemTranslation();
 		if(item.getItemTranslation()===item.id)
 			item._htmlItemId.style.color='red';
@@ -520,7 +525,7 @@ Pouch.Structs=Object.freeze({
 		{hash:'OwnedHorseList.Saddle', type:'EnumArray', propertyName:'saddles', enumValues:['None','GameRomHorseSaddle_00','GameRomHorseSaddle_01','GameRomHorseSaddle_02','GameRomHorseSaddle_03','GameRomHorseSaddle_04','GameRomHorseSaddle_05','GameRomHorseSaddle_06','GameRomHorseSaddle_07','GameRomHorseSaddle_00L','GameRomHorseSaddle_00S']},
 		{hash:'OwnedHorseList.Rein', type:'EnumArray', propertyName:'reins', enumValues:['None','GameRomHorseReins_00','GameRomHorseReins_01','GameRomHorseReins_02','GameRomHorseReins_03','GameRomHorseReins_04','GameRomHorseReins_05','GameRomHorseReins_06','GameRomHorseReins_00L','GameRomHorseReins_00S']},
 		{hash:'OwnedHorseList.Familiarity', type:'FloatArray', propertyName:'bond'},
-		{hash:'OwnedHorseList.IsFamiliarityChecked', type:'UIntArray', propertyName:'bondChecked'}, //BoolArray but it is indeed a 'BitArray'
+		{hash:'OwnedHorseList.IsFamiliarityChecked', type:'BoolArray', propertyName:'bondChecked'},
 		{hash:'OwnedHorseList.Toughness', type:'IntArray', propertyName:'statsStrength'},
 		{hash:'OwnedHorseList.Speed', type:'IntArray', propertyName:'statsSpeed'},
 		{hash:'OwnedHorseList.ChargeNum', type:'IntArray', propertyName:'statsStamina'},

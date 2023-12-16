@@ -1,4 +1,6 @@
 Locale.add('es', {
+/* Zelda TOTK Savegame Editor - spanish translation */
+
 'Close file':'Cerrar partida',
 'Save changes':'Guardar cambios',
 
@@ -88,13 +90,52 @@ Locale.add('es', {
 'Unlock missing':'Desbloquear restantes',
 
 'Autobuilder':'Generador de esquemas',
-'Design':'Diseño',
+'Blueprint':'Diseño',
+'Preview':'Previsualizar',
 
 'Experience':'Experiencia',
 'Total experience':'Experiencia total',
 'Unlocked pristine weapons':'Armas impolutas desbloqueadas',
 'Current enemy tier':'Rango actual enemigos',
 'Locked pristine weapons':'Armas impolutas bloqueadas',
+
+/* enemigos */
+'Soldier Construct I':'Gólem recluta',
+'Soldier Construct II':'Gólem soldado',
+'Soldier Construct III':'Gólem cabo',
+'Soldier Construct IV':'Gólem sargento',
+'Captain Construct I':'Gólem brigada',
+'Captain Construct II':'Gólem teniente',
+'Captain Construct III':'Gólem capitán',
+'Captain Construct IV':'Gólem coronel',
+'Bokoblin':'Bokoblin',
+'Blue Bokoblin':'Bokoblin azul',
+'Black Bokoblin':'Bokoblin negro',
+'Silver Bokoblin':'Bokoblin plateado',
+'Moblin':'Moblin',
+'Blue Moblin':'Moblin azul',
+'Black Moblin':'Moblin negro',
+'Silver Moblin':'Moblin plateado',
+'Lizalfos':'Lizalfos',
+'Blue Lizalfos':'Lizalfos azul',
+'Black Lizalfos':'Lizalfos negro',
+'Silver Lizalfos':'Lizalfos plateado',
+'Horriblin':'Horroblin',
+'Blue Horriblin':'Horroblin azul',
+'Black Horriblin':'Horroblin negro',
+'Silver Horriblin':'Horroblin plateado',
+'Boss Bokoblin':'Gran Bokoblin',
+'Blue Boss Bokoblin':'Gran Bokoblin azul',
+'Black Boss Bokoblin':'Gran Bokoblin negro',
+'Silver Boss Bokoblin':'Gran Bokoblin plateado',
+'Lynel':'Centaleón',
+'Blue-Maned Lynel':'Centaleón azul',
+'White-Maned Lynel':'Centaleón blanco',
+'Silver Lynel':'Centaleón plateado',
+'Lynel (Armored)':'Centaleón (armado)',
+'Blue-Maned Lynel (Armored)':'Centaleón azul (armado)',
+'White-Maned Lynel (Armored)':'Centaleón blanco (armado)',
+'Silver Lynel (Armored)':'Centaleón plateado (armado)',
 
 
 
@@ -119,6 +160,8 @@ Locale.add('es', {
 'Modifier':'Modificador',
 'Modifier value':'Valor modificador',
 'Fusion':'Fusión',
+'Current Fuse Durability':'Durabilidad de fusión (actual)',
+'Max Fuse Durability':'Durabilidad de fusión (máxima)',
 'Dye color':'Color tinte',
 'Quantity':'Cantidad',
 'Heart quarters heal':'Cuartos de corazón curados',

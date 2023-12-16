@@ -25,11 +25,20 @@ Equipment.prototype.getItemTranslation=function(){
 Equipment.prototype.isFusable=function(){
 	return (this.category==='weapons' || this.category==='shields')
 }
+Equipment.prototype.gainsFuseDurability=function(){
+	return (this.category==='weapons')
+}
 Equipment.prototype.canBeUndecayed=function(){
 	return Equipment.WEAPONS_DECAYED_TO_PRISTINE[this.id];
 }
 Equipment.prototype.canBeRestored=function(){
-	return this.durability !== this.getMaximumDurability();
+	if(this.durability !== this.getMaximumDurability()){
+		return true;
+	}
+	if(this.gainsFuseDurability()){
+		return this.recordExtraDurability !== -1 && this.recordExtraDurability !== this.getMaximumRecordDurability();
+	}
+	return false;
 }
 Equipment.prototype.canBeSetToInfiniteDurability=function(){
 	return this.modifier!==hash('DurabilityUpPlus') || this.modifierValue!==2100000000;
@@ -37,6 +46,20 @@ Equipment.prototype.canBeSetToInfiniteDurability=function(){
 Equipment.prototype.restoreDurability=function(){
 	if(this.canBeRestored()){
 		this.durability=this.getMaximumDurability();
+		if(this.gainsFuseDurability()){
+			if(this.fuseId){
+				this.extraDurability = Equipment.FUSE_DURABILITY[this.id] || 25;
+				this.recordExtraDurability = this.extraDurability;
+			}else{
+				this.recordExtraDurability = -1;
+				this.extraDurability = 0;
+			}
+		}
+		if(this.isFusable() && this.fuseId){
+			if(Equipment.DEFAULT_DURABILITY[this.fuseId]){
+				this.fuseDurability=Equipment.DEFAULT_DURABILITY[this.fuseId];
+			}
+		}
 		return this.durability;
 	}
 	return false;
@@ -67,17 +90,17 @@ Equipment.prototype.setInfiniteDurability=function(){
 }
 Equipment.prototype.getMaximumDurability=function(){
 	var defaultDurability=Equipment.DEFAULT_DURABILITY[this.id] || 70;
-	if(this.isFusable() && this.fuseId){
-		if(Equipment.DEFAULT_DURABILITY[this.fuseId]){
-			defaultDurability+=Equipment.DEFAULT_DURABILITY[this.fuseId];
-		}else{
-			defaultDurability+=25;
-		}
-	}
 
 	if(this.modifier===hash('DurabilityUp') || this.modifier===hash('DurabilityUpPlus'))
 		return defaultDurability + this.modifierValue;
 	return defaultDurability;
+}
+Equipment.prototype.getMaximumRecordDurability=function(){
+	var recordDurability = 0;
+	if(this.gainsFuseDurability()){
+		recordDurability=Equipment.FUSE_DURABILITY[this.id] || 25;
+	}
+	return recordDurability;
 }
 Equipment.prototype.export=function(){
 	if(this.isFusable()){
@@ -116,10 +139,44 @@ Equipment.prototype.refreshHtmlInputs=function(fixValues){
 				this.modifierValue=1;
 			}
 		}
+		if(this.gainsFuseDurability()){
+			this._htmlInputs.extraDurability.maxValue=this.getMaximumRecordDurability();
+			this._htmlInputs.recordExtraDurability.maxValue=this.getMaximumRecordDurability();
+			if(this.extraDurability>this.getMaximumRecordDurability())
+				this.extraDurability=this.getMaximumRecordDurability();
+			if(this.recordExtraDurability>this.getMaximumRecordDurability())
+				this.recordExtraDurability=this.getMaximumRecordDurability();
+		}
+		if(this.lastInputChanged==='fuseId'){
+			if(this.recordExtraDurability===-1){
+				this.recordExtraDurability = this.getMaximumRecordDurability();
+				this.extraDurability = this.recordExtraDurability;
+			}else if(!this.fuseId){
+				this.extraDurability = 0;
+			}else{
+				this.extraDurability = this.recordExtraDurability;
+			}
+		}
+		if(this.lastInputChanged==='extraDurability'){
+			if(this.fuseId){
+				this.recordExtraDurability = this.extraDurability;
+			}else{
+				this.extraDurability = 0;
+			}
+		}
+		if(this.lastInputChanged==='recordExtraDurability'){
+			if(this.fuseId){
+				if(this.recordExtraDurability===-1)
+					this.recordExtraDurability = this.getMaximumRecordDurability();
+				this.extraDurability = this.recordExtraDurability;
+			}
+		}
 	}
 
 
 	this._htmlInputs.modifierValue.disabled=this.modifier===hash('None');
+	if(this.gainsFuseDurability())
+		this._htmlInputs.extraDurability.disabled=!this.fuseId;
 
 
 
@@ -146,6 +203,20 @@ Equipment.buildHtmlElements=function(item){
 	};
 	if(item.isFusable())
 		item._htmlInputs.fuseId=Pouch.createItemInput(item, 'fuseId', 'String64', {enumValues:Equipment.FUSABLE_ITEMS, label:_('Fusion')});
+	if(item.gainsFuseDurability()){
+		item._htmlInputs.extraDurability=Pouch.createItemInput(
+			item,
+			'extraDurability',
+			'Int',
+			{min:0, max:item.getMaximumRecordDurability(), label:_('Current Fuse Durability')}
+		);
+		item._htmlInputs.recordExtraDurability=Pouch.createItemInput(
+			item,
+			'recordExtraDurability',
+			'Int',
+			{min:-1, max:item.getMaximumRecordDurability(), label:_('Max Fuse Durability')}
+		);
+	}
 
 
 
@@ -370,6 +441,129 @@ Equipment.DEFAULT_DURABILITY={
 	Weapon_Shield_102:15,
 	Weapon_Shield_103:20,
 	Weapon_Shield_107:12,
+};
+
+Equipment.FUSE_DURABILITY={
+	Weapon_Sword_001:25,
+	Weapon_Sword_002:25,
+	Weapon_Sword_003:25,
+	Weapon_Sword_019:3,
+	Weapon_Sword_020:3,
+	Weapon_Sword_021:10,
+	Weapon_Sword_022:10,
+	Weapon_Sword_024:25,
+	Weapon_Sword_025:25,
+	Weapon_Sword_027:25,
+	Weapon_Sword_029:5,
+	Weapon_Sword_031:25,
+	Weapon_Sword_041:25,
+	Weapon_Sword_043:10,
+	Weapon_Sword_044:10,
+	Weapon_Sword_047:10,
+	Weapon_Sword_051:25,
+	Weapon_Sword_052:25,
+	Weapon_Sword_057:25,
+	Weapon_Sword_058:25,
+	Weapon_Sword_059:25,
+	Weapon_Sword_070:25,
+	Weapon_Sword_101:25,
+	Weapon_Sword_103:25,
+	Weapon_Sword_105:25,
+	Weapon_Sword_106:25,
+	Weapon_Sword_107:25,
+	Weapon_Sword_108:25,
+	Weapon_Sword_109:25,
+	Weapon_Sword_112:25,
+	Weapon_Sword_113:25,
+	Weapon_Sword_114:25,
+	Weapon_Sword_124:25,
+	Weapon_Sword_125:25,
+	Weapon_Sword_127:25,
+	Weapon_Sword_129:5,
+	Weapon_Sword_131:25,
+	Weapon_Sword_147:10,
+	Weapon_Sword_161:25,
+	Weapon_Sword_163:25,
+	Weapon_Sword_164:25,
+	Weapon_Sword_166:10,
+	Weapon_Sword_167:10,
+	Weapon_Sword_168:25,
+	Weapon_Sword_077:25,
+	Weapon_Sword_070_Broken:25,
+	Npc_Zelda_Torch:25,
+
+	Weapon_Lsword_001:25,
+	Weapon_Lsword_002:25,
+	Weapon_Lsword_003:25,
+	Weapon_Lsword_019:3,
+	Weapon_Lsword_020:10,
+	Weapon_Lsword_024:25,
+	Weapon_Lsword_027:25,
+	Weapon_Lsword_029:5,
+	Weapon_Lsword_036:25,
+	Weapon_Lsword_038:10,
+	Weapon_Lsword_041:25,
+	Weapon_Lsword_045:10,
+	Weapon_Lsword_047:10,
+	Weapon_Lsword_051:25,
+	Weapon_Lsword_054:25,
+	Weapon_Lsword_057:25,
+	Weapon_Lsword_059:25,
+	Weapon_Lsword_060:25,
+	Weapon_Lsword_101:25,
+	Weapon_Lsword_103:25,
+	Weapon_Lsword_106:25,
+	Weapon_Lsword_108:25,
+	Weapon_Lsword_109:25,
+	Weapon_Lsword_112:25,
+	Weapon_Lsword_113:25,
+	Weapon_Lsword_114:25,
+	Weapon_Lsword_124:25,
+	Weapon_Lsword_127:25,
+	Weapon_Lsword_129:5,
+	Weapon_Lsword_136:25,
+	Weapon_Lsword_147:10,
+	Weapon_Lsword_161:25,
+	Weapon_Lsword_163:25,
+	Weapon_Lsword_164:25,
+	Weapon_Lsword_166:10,
+	Weapon_Lsword_168:25,
+	Weapon_Lsword_174:25,
+	Weapon_Spear_001:25,
+	Weapon_Spear_002:25,
+	Weapon_Spear_003:25,
+	Weapon_Spear_021:10,
+	Weapon_Spear_022:10,
+	Weapon_Spear_024:25,
+	Weapon_Spear_025:25,
+	Weapon_Spear_027:25,
+	Weapon_Spear_029:5,
+	Weapon_Spear_030:25,
+	Weapon_Spear_032:25,
+	Weapon_Spear_036:10,
+	Weapon_Spear_038:10,
+	Weapon_Spear_047:10,
+	Weapon_Spear_050:25,
+	Weapon_Spear_101:25,
+	Weapon_Spear_103:25,
+	Weapon_Spear_106:25,
+	Weapon_Spear_108:25,
+	Weapon_Spear_109:25,
+	Weapon_Spear_112:25,
+	Weapon_Spear_113:25,
+	Weapon_Spear_124:25,
+	Weapon_Spear_125:25,
+	Weapon_Spear_127:25,
+	Weapon_Spear_129:5,
+	Weapon_Spear_132:25,
+	Weapon_Spear_147:10,
+	Weapon_Spear_161:25,
+	Weapon_Spear_163:25,
+	Weapon_Spear_164:25,
+	Weapon_Spear_166:10,
+	Weapon_Spear_168:25,
+	Weapon_Spear_173:25,
+
 };
 
 Equipment.AVAILABILITY={
@@ -951,67 +1145,67 @@ Equipment.KNOWN_FUSABLE_OBJECTS=[
 	'SkyObj_Pot_A_S_Act_01',
 	'SkyObj_Remains_Block_Fall_A_01',
 	'SkyObj_Rito_Block_Fall_A_01',
-	'SpObj_BalloonEnvelope_A_01',
+	// 'SpObj_BalloonEnvelope_A_01',
 	'SpObj_BalloonEnvelope_A_05',
 	'SpObj_BalloonEnvelope_A_06',
-	'SpObj_BalloonEnvelope_Capsule_A_01',
-	'SpObj_Beamos_A_01',
-	'SpObj_Beamos_Capsule_A_01',
-	'SpObj_Cannon_A_01',
-	'SpObj_Cannon_Capsule_A_01',
-	'SpObj_Cart_A_01',
-	'SpObj_Cart_Capsule_A_01',
-	'SpObj_Chaser_A_01',
-	'SpObj_Chaser_Capsule_A_01',
-	'SpObj_ControlStick_A_01',
+	// 'SpObj_BalloonEnvelope_Capsule_A_01',
+	// 'SpObj_Beamos_A_01',
+	// 'SpObj_Beamos_Capsule_A_01',
+	// 'SpObj_Cannon_A_01',
+	// 'SpObj_Cannon_Capsule_A_01',
+	// 'SpObj_Cart_A_01',
+	// 'SpObj_Cart_Capsule_A_01',
+	// 'SpObj_Chaser_A_01',
+	// 'SpObj_Chaser_Capsule_A_01',
+	// 'SpObj_ControlStick_A_01',
 	'SpObj_ControlStick_A_02',
 	'SpObj_ControlStick_A_03',
-	'SpObj_ControlStick_Capsule_A_01',
-	'SpObj_CookSetOnFire_A_01',
-	'SpObj_CookSet_Capsule_A_01',
-	'SpObj_ElectricBoxGenerator',
-	'SpObj_ElectricBoxGenerator_Capsule_A_01',
-	'SpObj_EnergyBank_A_01',
-	'SpObj_EnergyBank_A_02',
-	'SpObj_EnergyBank_Capsule_A_01',
-	'SpObj_EnergyBank_Capsule_A_02',
-	'SpObj_FastWheel_A_01',
-	'SpObj_FastWheel_Capsule_A_01',
-	'SpObj_FastWheel_Capsule_B_01',
-	'SpObj_FlameThrower_A_01',
-	'SpObj_FlameThrower_Capsule_A_01',
-	'SpObj_FlashLight_A_01',
+	// 'SpObj_ControlStick_Capsule_A_01',
+	// 'SpObj_CookSetOnFire_A_01',
+	// 'SpObj_CookSet_Capsule_A_01',
+	// 'SpObj_ElectricBoxGenerator',
+	// 'SpObj_ElectricBoxGenerator_Capsule_A_01',
+	// 'SpObj_EnergyBank_A_01',
+	// 'SpObj_EnergyBank_A_02',
+	// 'SpObj_EnergyBank_Capsule_A_01',
+	// 'SpObj_EnergyBank_Capsule_A_02',
+	// 'SpObj_FastWheel_A_01',
+	// 'SpObj_FastWheel_Capsule_A_01',
+	// 'SpObj_FastWheel_Capsule_B_01',
+	// 'SpObj_FlameThrower_A_01',
+	// 'SpObj_FlameThrower_Capsule_A_01',
+	// 'SpObj_FlashLight_A_01',
 	'SpObj_FlashLight_A_02',
-	'SpObj_FlashLight_Capsule_A_01',
-	'SpObj_FloatingStone_A_01',
-	'SpObj_FloatingStone_Capsule_A_01',
-	'SpObj_GolemHead_A_01',
-	'SpObj_GolemHead_Capsule_A_01',
-	'SpObj_LiftableWaterPump_Capsule_A_01',
-	'SpObj_LiftGeneratorWing_A_01',
+	// 'SpObj_FlashLight_Capsule_A_01',
+	// 'SpObj_FloatingStone_A_01',
+	// 'SpObj_FloatingStone_Capsule_A_01',
+	// 'SpObj_GolemHead_A_01',
+	// 'SpObj_GolemHead_Capsule_A_01',
+	// 'SpObj_LiftableWaterPump_Capsule_A_01',
+	// 'SpObj_LiftGeneratorWing_A_01',
 	'SpObj_LiftGeneratorWing_A_01_MiniGame',
-	'SpObj_LiftGeneratorWing_Capsule_A_01',
-	'SpObj_LightMirror_A_01',
-	'SpObj_LightMirror_Capsule_A_01',
-	'SpObj_Pile_A_01',
-	'SpObj_Pile_Capsule_A_01',
-	'SpObj_Rocket_A_01',
-	'SpObj_Rocket_Capsule_A_01',
-	'SpObj_SlipBoard_A_01',
-	'SpObj_SlipBoard_Capsule_A_01',
-	'SpObj_SnowMachine_A_01',
-	'SpObj_SnowMachine_Capsule_A_01',
-	'SpObj_SpringPiston_A_01',
-	'SpObj_SpringPiston_Capsule_A_01',
-	'SpObj_SwitchWheel_B_01',
-	'SpObj_TiltingDoll_A_01',
-	'SpObj_TiltingDoll_Capsule_A_01',
-	'SpObj_TimerBomb_A_01',
-	'SpObj_TimerBomb_Capsule_A_01',
-	'SpObj_WaterPump_A_01',
-	'SpObj_WindGenerator_A_01',
+	// 'SpObj_LiftGeneratorWing_Capsule_A_01',
+	// 'SpObj_LightMirror_A_01',
+	// 'SpObj_LightMirror_Capsule_A_01',
+	// 'SpObj_Pile_A_01',
+	// 'SpObj_Pile_Capsule_A_01',
+	// 'SpObj_Rocket_A_01',
+	// 'SpObj_Rocket_Capsule_A_01',
+	// 'SpObj_SlipBoard_A_01',
+	// 'SpObj_SlipBoard_Capsule_A_01',
+	// 'SpObj_SnowMachine_A_01',
+	// 'SpObj_SnowMachine_Capsule_A_01',
+	// 'SpObj_SpringPiston_A_01',
+	// 'SpObj_SpringPiston_Capsule_A_01',
+	// 'SpObj_SwitchWheel_B_01',
+	// 'SpObj_TiltingDoll_A_01',
+	// 'SpObj_TiltingDoll_Capsule_A_01',
+	// 'SpObj_TimerBomb_A_01',
+	// 'SpObj_TimerBomb_Capsule_A_01',
+	// 'SpObj_WaterPump_A_01',
+	// 'SpObj_WindGenerator_A_01',
 	'SpObj_WindGenerator_A_03',
-	'SpObj_WindGenerator_Capsule_A_01',
+	// 'SpObj_WindGenerator_Capsule_A_01',
 	'StoneBall',
 	'TimerBarrelBomb',
 	'TwnObj_City_GerudoPot_A_LL_Act_02',
@@ -1056,6 +1250,20 @@ Equipment.KNOWN_FUSABLE_OBJECTS=[
 	'Zonau_BlockMaster_Block_Senior_ForAttachment'
 ];
 
+Equipment.ZONAI_CAPSULE_MAP=(function(){
+	var devices = {
+		'SpObj_LiftableWaterPump_Capsule_A_01':'SpObj_WaterPump_A_01',
+		'SpObj_FastWheel_Capsule_B_01':'SpObj_SwitchWheel_B_01',
+		'SpObj_CookSet_Capsule_A_01':'SpObj_CookSetOnFire_A_01',
+	};
+	Item.AVAILABILITY.devices.forEach(function(itemId){
+		if(!devices[itemId]){
+			devices[itemId] = itemId.replace('_Capsule','');
+		}
+	});
+	return devices;
+}());
+
 Equipment.FUSABLE_ITEMS=(function(){
 	var options=[
 		{value:'', originalName:'No fusion'}
@@ -1079,8 +1287,13 @@ Equipment.FUSABLE_ITEMS=(function(){
 	Item.AVAILABILITY.materials.forEach(function(itemId){
 		options.push({value:itemId, originalName:itemId, originalNamePrefix:'Material'})
 	});
+	Item.AVAILABILITY.food.forEach(function(itemId){
+		if(/_Chilled/.test(itemId) || /_Roast/.test(itemId)){
+			options.push({value:itemId, originalName:itemId, originalNamePrefix:'Food'});
+		}
+	})
 	Item.AVAILABILITY.devices.forEach(function(itemId){
-		options.push({value:itemId.replace('_Capsule',''), originalName:itemId, originalNamePrefix:'Zonai device'})
+		options.push({value:Equipment.ZONAI_CAPSULE_MAP[itemId], originalName:itemId, originalNamePrefix:'Zonai device'})
 	});
 
 	return options;

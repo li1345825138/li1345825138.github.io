@@ -1,5 +1,5 @@
 /*
-	The legend of Zelda: Tears of the Kingdom savegame editor (last update 2023-07-12)
+	The legend of Zelda: Tears of the Kingdom savegame editor (last update 2023-09-02)
 
 	by Marc Robledo 2023
 */
@@ -9,8 +9,7 @@ var currentEditingItem;
 SavegameEditor={
 	Name:'The legend of Zelda: Tears of the Kingdom',
 	Filename:['progress.sav','caption.sav'],
-	Version:20230712,
-	noDemo:true,
+	Version:20230902,
 
 	/* Settings */
 	Settings:{
@@ -48,8 +47,7 @@ SavegameEditor={
 		0xd27f8651, 'AutoBuilder.Draft.Content.Index', true, //S32, array length=30
 		0xa56722b6, 'AutoBuilder.Draft.Content.CombinedActorInfo', true, //binary data (size=6688)
 		0xc5bf2815, 'AutoBuilder.Draft.Content.CameraPos', true, //Vector3F
-		0xef74dca7, 'AutoBuilder.Draft.Content.CameraAt', true, //Vector3F
-		0x67f4b46b, 'AutoBuilder.Draft.Content.IsFavorite', true //S32
+		0xef74dca7, 'AutoBuilder.Draft.Content.CameraAt', true //Vector3F
 	],
 
 
@@ -479,8 +477,7 @@ SavegameEditor={
 
 		return true;
 	},
-
-
+	
 	fixItemAvailabilityFlag:function(item){
 		if(item.category==='key'){
 			var fixed=false;
@@ -500,54 +497,147 @@ SavegameEditor={
 			}
 		}
 	},
-
-	getAvailableItems:function(catId){
+	
+	
+	
+	getAvailableItems:function(catId, query){
+		var allItems;
 		if(catId==='weapons' || catId==='bows' || catId==='shields')
-			return Equipment.AVAILABILITY[catId];
+			allItems=Equipment.AVAILABILITY[catId];
 		else if(catId==='armors')
-			return Armor.AVAILABILITY;
+			allItems=Armor.AVAILABILITY;
 		else if(catId==='arrows' || catId==='materials' || catId==='food' || catId==='devices' || catId==='key')
-			return Item.AVAILABILITY[catId];
+			allItems=Item.AVAILABILITY[catId];
 		else if(catId==='horses')
-			return Horse.AVAILABILITY;
-		return null;
-	},
+			allItems=Horse.AVAILABILITY;
+		else
+			return null;
 
+		if(query){
+			query = query.slug();
+
+			return allItems.filter(function(itemName){
+				let nameSlug = SavegameEditor.nameMap.get(itemName);
+				if(!nameSlug){
+					nameSlug = _(itemName).slug();
+					SavegameEditor.nameMap.set(itemName, nameSlug);
+				}
+
+				return nameSlug.includes(query)
+			});
+		}else{
+			return allItems;
+		}
+	},
 	editItem:function(item){
 		currentEditingItem=item;
 
-		/* prepare edit item selector */		
-		if(this.selectItem.lastCategory !== item.category){
-			this.selectItem.innerHTML='';
-			var itemList=this.getAvailableItems(item.category);
-			for(var i=0; i<itemList.length; i++){
-				var opt=document.createElement('option');
-				opt.value=itemList[i];
-				opt.innerHTML=_(itemList[i]);
-				this.selectItem.appendChild(opt);
-			}
-
-			this.selectItem.lastCategory=item.category;
-		}
-		this.selectItem.value=item.id;
-		if(!this.selectItem.value){
-			var opt=document.createElement('option');
-			opt.value=item.id;
-			opt.innerHTML='Unknown: '+item.id;
-			this.selectItem.appendChild(opt);
-			this.selectItem.value=item.id;
-		}
-
+		/* prepare edit item selector */
 		item._htmlItemId.style.display='none';
-		item._htmlRow.children[0].appendChild(this.selectItem);
-		this.selectItem.focus();
-		this.selectItem.click();
+		item._htmlRow.children[0].appendChild(this.itemChangeDropdown);
+
+		this.filterDropdownItems('');
+		if(SavegameEditor.customItemDropdown){
+			this.itemFilterInput.setAttribute('placeholder', _(item.id));
+			this.itemFilterInput.value='';
+			this.itemFilterInput.focus();
+		}else{
+			this.itemChangeDropdown.value=item.id;
+			this.itemChangeDropdown.click();
+			this.itemChangeDropdown.focus();
+		}
 
 		item.lastInputChanged='id';
 		for(var prop in item._htmlInputs){
 			item._htmlInputs[prop].disabled=true;
 		}
 	},
+	editItemEnd:function(newId){
+		if(currentEditingItem){
+			for(var prop in currentEditingItem._htmlInputs){
+				currentEditingItem._htmlInputs[prop].disabled=false;
+			}
+
+			if(newId && currentEditingItem.id!==newId){
+				currentEditingItem.id=newId;
+				Pouch.updateItemIcon(currentEditingItem);
+				Pouch.updateItemRow(currentEditingItem);
+				SavegameEditor.fixItemAvailabilityFlag(currentEditingItem);
+			}
+
+			currentEditingItem._htmlItemId.style.display='inline';
+		}
+
+		this.itemFilterInput.parentElement.parentElement.removeChild(this.itemFilterInput.parentElement);
+
+		currentEditingItem=null;
+	},
+	filterDropdownItems: function(query){
+		var itemList=this.getAvailableItems(currentEditingItem.category, query);
+		
+		if(SavegameEditor.customItemDropdown){
+			this.itemFilterResults.innerHTML='';
+			var activeEl;
+
+			itemList.forEach(el => {
+				var option = document.createElement('div');
+				option.className = 'option';
+				option.setAttribute('itemId',el);
+				option.addEventListener('mousedown', function(event){
+					event.preventDefault();
+					event.stopPropagation();
+					SavegameEditor.editItemEnd(this.getAttribute('itemId'));
+				});
+				if(el===currentEditingItem.id)
+					activeEl=option;
+
+				var itemIcon = new Image();
+				itemIcon.className='item-icon';
+				itemIcon.loading='lazy';
+				itemIcon.onerror=function(){
+					this.src=ICON_PATH+'unknown.png';
+				}
+				if(currentEditingItem instanceof Armor){
+					itemIcon.src = Pouch.getItemIcon(new Armor(Object.assign({...currentEditingItem},{id:el})));
+				} else {
+					itemIcon.src = Pouch.getItemIcon(Object.assign({...currentEditingItem},{id:el}));
+				}
+				option.appendChild(itemIcon);
+
+				var name = document.createElement('span');
+				name.className='item-name';
+				name.innerText = _(el);
+				option.appendChild(name);
+
+				this.itemFilterResults.appendChild(option);
+			});
+
+			if(!activeEl && this.itemFilterResults.children.length){
+				activeEl=this.itemFilterResults.children[0];
+			}
+
+			if(activeEl){
+				activeEl.className+=' active';
+				var optionOffsetTop = activeEl.offsetTop;
+
+				this.itemFilterResults.scrollTo(0, optionOffsetTop - 8);
+			}
+		}else{ //prefer classic dropdown in devices with touch events for UX purposes
+			if(this.itemChangeDropdown.lastCategory !== currentEditingItem.category){
+				this.itemChangeDropdown.lastCategory=currentEditingItem.category;
+				this.itemChangeDropdown.innerHTML='';
+
+				for(var i=0; i<itemList.length; i++){
+					var opt=document.createElement('option');
+					opt.value=itemList[i];
+					opt.innerHTML=_(itemList[i]);
+					this.itemChangeDropdown.appendChild(opt);
+				}
+			}
+		}
+	},
+
+
 
 	restoreDurability:function(equipment){
 		if(equipment.restoreDurability()){
@@ -572,7 +662,6 @@ SavegameEditor={
 			Pouch.updateItemIcon(equipment);
 			return true;
 		}
-
 		return false;
 	},
 	restoreDecayAll:function(){
@@ -625,8 +714,8 @@ SavegameEditor={
 
 	clearAllMapPins:function(onlyIcon){
 		var count=0;
-		for(var i=0; i<this.currentItems.mapPins.length; i++){
-			if(this.currentItems.mapPins[i].clear(onlyIcon))
+		for(var i=0; i<this.mapPins.length; i++){
+			if(this.mapPins[i].clear(onlyIcon))
 				count++;
 		}
 
@@ -635,13 +724,13 @@ SavegameEditor={
 		return count;
 	},
 	addMapPin:function(icon, x, y, z){
-		for(var i=0; i<this.currentItems.mapPins.length; i++){
-			if(this.currentItems.mapPins[i].isFree() && !MapPin.find(this.currentItems.mapPins, x, y, z)){
-				this.currentItems.mapPins[i].icon=icon;
-				this.currentItems.mapPins[i].coordinates={x:MapPin.formatFloat(x), y:MapPin.formatFloat(y)};
+		for(var i=0; i<this.mapPins.length; i++){
+			if(this.mapPins[i].isFree() && !MapPin.find(this.mapPins, x, y, z)){
+				this.mapPins[i].icon=icon;
+				this.mapPins[i].coordinates={x:MapPin.formatFloat(x), y:MapPin.formatFloat(y)};
 				//console.log(z);
 				//console.log(hashReverse(MapPin.getMapByZ(z)));
-				this.currentItems.mapPins[i].map=MapPin.getMapByZ(z);
+				this.mapPins[i].map=MapPin.getMapByZ(z);
 				return true;
 			}
 		}
@@ -774,7 +863,7 @@ SavegameEditor={
 		getField(container+'-counter').appendChild(progressBar);
 	},
 	refreshCounterMapPins:function(){
-		SavegameEditor._refreshCounter('pin', MapPin.count(SavegameEditor.currentItems.mapPins), MapPin.MAX);
+		SavegameEditor._refreshCounter('pin', MapPin.count(SavegameEditor.mapPins), MapPin.MAX);
 	},
 	refreshCounterTowersFound:function(){
 		this._refreshCounter('towers-found', Completism.countTowersFound(), CompletismHashes.TOWERS_FOUND.length);
@@ -975,7 +1064,23 @@ SavegameEditor={
 	},
 
 
-	preload:function(){		
+	preload:function(){
+		/* implement String.slug for item searching purposes */
+		String.prototype.slug=function(){
+			return this.toLowerCase().trim()
+				.replace(/[\xc0\xc1\xc2\xc4\xe0\xe1\xe2\xe4]/g, 'a')
+				.replace(/[\xc8\xc9\xca\xcb\xe8\xe9\xea\xeb]/g, 'e')
+				.replace(/[\xcc\xcd\xce\xcf\xec\xed\xee\xef]/g, 'i')
+				.replace(/[\xd2\xd3\xd4\xd6\xf2\xf3\xf4\xf6]/g, 'o')
+				.replace(/[\xd9\xda\xdb\xdc\xf9\xfa\xfb\xfc]/g, 'u')
+
+				.replace(/[\xd1\xf1]/g, 'n')
+				.replace(/[\xc7\xe7]/g, 'c')
+
+				.replace(/[\(\)\*]/g, '')
+				.replace(/[ _\-]+/g, ' ')
+		}
+
 		/* completiosnim mode */
 		$('#input-radio-completionism-map, #input-radio-completionism-unlock').on('change', function(evt){
 			if(this.value==='unlock'){
@@ -1076,28 +1181,138 @@ SavegameEditor={
 
 
 
+		/* filter item dropdown */
+		SavegameEditor.nameMap=new Map();
+		SavegameEditor.customItemDropdown='onmousedown' in window; //browser has mouse events
 
+		if(SavegameEditor.customItemDropdown){
+			this.itemChangeDropdown = document.createElement('div');
+			this.itemChangeDropdown.className='dropdown-item-container';
 
+			this.itemFilterInput = document.createElement('input');
+			this.itemFilterInput.className='search-input';
+			this.itemChangeDropdown.appendChild(this.itemFilterInput);
 
-		
-		this.selectItem=document.createElement('select');
-		this.selectItem.addEventListener('change', function(){
-			//console.log('change');
-			currentEditingItem.id=this.value;
-			Pouch.updateItemIcon(currentEditingItem);
-		}, false);
-		this.selectItem.addEventListener('blur', function(){
-			//console.log('blur');
-			for(var prop in currentEditingItem._htmlInputs){
-				currentEditingItem._htmlInputs[prop].disabled=false;
-			}
-			Pouch.updateItemRow(currentEditingItem);
-			SavegameEditor.fixItemAvailabilityFlag(currentEditingItem);
-			currentEditingItem._htmlItemId.style.display='inline';
-			this.parentElement.removeChild(this);
+			this.itemFilterResults = document.createElement('div');
+			this.itemFilterResults.className='search-filter';
+			this.itemChangeDropdown.appendChild(this.itemFilterResults);
 
-			currentEditingItem=null;
-		}, false);
+			this.itemChangeDropdown.addEventListener('keydown', (event)=>{
+				var activeEl = this.itemFilterResults.querySelector('.active');
+
+				if(activeEl){
+					var changedEl;
+
+					switch(event.keyCode){
+						case 13:
+							// enter
+							if(activeEl){
+								activeEl.dispatchEvent(new Event('mousedown'));
+							}
+							break;
+						case 38:
+							// up
+							event.preventDefault();
+							if(activeEl.previousElementSibling){
+								changedEl=activeEl.previousElementSibling;
+							} else {
+								changedEl=this.itemFilterResults.querySelector('.option:last-child');
+							}
+							break;
+						case 40:
+							// down
+							event.preventDefault();
+							if(activeEl.nextElementSibling){
+								changedEl=activeEl.nextElementSibling;
+							} else {
+								changedEl=this.itemFilterResults.querySelector('.option:first-child');
+							}
+							break;
+						case 33:
+							// prevpage
+							event.preventDefault();
+							var allOptions=this.itemFilterResults.querySelectorAll('.option');
+							var indexOf=[].indexOf.call(allOptions, activeEl);
+							indexOf-=8;
+							if(indexOf<0)
+								indexOf=0;
+							changedEl=allOptions[indexOf];
+							break;
+						case 34:
+							// nextpage
+							event.preventDefault();
+							var allOptions=this.itemFilterResults.querySelectorAll('.option');
+							var indexOf=[].indexOf.call(allOptions, activeEl);
+							indexOf+=8;
+							if(indexOf>=allOptions.length)
+								indexOf=allOptions.length-1;
+							changedEl=allOptions[indexOf];
+							break;
+						case 36:
+							// start
+							event.preventDefault();
+							changedEl=this.itemFilterResults.querySelector('.option:first-child');
+							break;
+						case 35:
+							// end
+							event.preventDefault();
+							changedEl=this.itemFilterResults.querySelector('.option:last-child');
+							break;
+					}
+
+					if(changedEl && changedEl !== activeEl){
+						activeEl.classList.remove('active');
+						changedEl.classList.add('active');
+
+						// scrollOffset
+						var optionOffsetTop = changedEl.offsetTop;
+						var optionHeight = changedEl.offsetHeight;
+						var optionOffsetBottom = optionOffsetTop + optionHeight;
+						var filterScrollTop = this.itemFilterResults.scrollTop;
+						var filterHeight = this.itemFilterResults.offsetHeight
+						var filterScrollBottom = filterScrollTop + filterHeight;
+						if(optionOffsetBottom > filterScrollBottom){
+							this.itemFilterResults.scrollTo({
+								top: optionOffsetBottom - filterHeight + 8,
+								behavior: event.repeat ? 'instant' : 'smooth'
+							})
+						} else if(optionOffsetTop < filterScrollTop){
+							this.itemFilterResults.scrollTo({
+								top: optionOffsetTop - 8,
+								behavior: event.repeat ? 'instant' : 'smooth'
+							})
+						}
+					}
+				}
+			});
+
+			this.itemFilterInput.addEventListener('blur', function(evt){
+				SavegameEditor.editItemEnd(null);
+			});
+
+			this.itemFilterInput.addEventListener('input', function(evt){
+				SavegameEditor.filterDropdownItems(this.value);
+			});
+		}else{
+			this.itemChangeDropdown=document.createElement('select');
+			this.itemChangeDropdown.addEventListener('change', function(){
+				//console.log('change');
+				currentEditingItem.id=this.value;
+				Pouch.updateItemIcon(currentEditingItem);
+			}, false);
+			this.itemChangeDropdown.addEventListener('blur', function(){
+				//console.log('blur');
+				for(var prop in currentEditingItem._htmlInputs){
+					currentEditingItem._htmlInputs[prop].disabled=false;
+				}
+				Pouch.updateItemRow(currentEditingItem);
+				SavegameEditor.fixItemAvailabilityFlag(currentEditingItem);
+				currentEditingItem._htmlItemId.style.display='inline';
+				this.parentElement.removeChild(this);
+
+				currentEditingItem=null;
+			}, false);
+		}
 
 		setNumericRange('rupees', 0, 999999);
 		setNumericRange('pony-points', 0, 999999);
@@ -1105,26 +1320,11 @@ SavegameEditor={
 		setNumericRange('pouch-size-swords', 9, 20);
 		setNumericRange('pouch-size-bows', 5, 14);
 		setNumericRange('pouch-size-shields', 4, 20);
-		getField('pouch-size-swords').addEventListener('change', function(evt){
-			var newVal=parseInt(this.value);
-			if(!isNaN(newVal) && newVal>=9)
-				SavegameEditor.currentItems.pouchSword=newVal;
-		});
-		getField('pouch-size-bows').addEventListener('change', function(evt){
-			var newVal=parseInt(this.value);
-			if(!isNaN(newVal) && newVal>=5)
-				SavegameEditor.currentItems.pouchBow=newVal;
-		});
-		getField('pouch-size-shields').addEventListener('change', function(evt){
-			var newVal=parseInt(this.value);
-			if(!isNaN(newVal) && newVal>=4)
-				SavegameEditor.currentItems.pouchShield=newVal;
-		});
 
 
 
 		/* autobuilder */
-		get('input-file-autobuilder-import').addEventListener('change', function(evt){
+		$('#input-file-autobuilder-import').on('change', function(evt){
 			autobuilderTempFile=new MarcFile(this.files[0], function(){
 				var selectedIndex=parseInt(getValue('select-autobuilder-index'));
 				var autobuilderOld=AutoBuilder.readSingle(selectedIndex);
@@ -1143,18 +1343,38 @@ SavegameEditor={
 			});
 
 		});
-		get('button-autobuilder-export').addEventListener('click', function(evt){
+		$('#button-autobuilder-preview').on('click', function(evt){
+			var selectedIndex=parseInt(getValue('select-autobuilder-index'));
+			var autobuilder=AutoBuilder.readSingle(selectedIndex);
+			if(autobuilder){
+				fflate.gzip(
+					new Uint8Array(autobuilder.combinedActorInfo),
+					{level: 6},
+					function(err, data){
+						if(err){
+							console.error('fflate error: '+err);
+						}else{
+							var charData = data.reduce((value, char) => value + String.fromCharCode(char), '');
+							var base64String = btoa(charData);
+							console.log(base64String);
+							window.open('https://blehditor.ssmvc.org/?view=true&cai='+encodeURIComponent(base64String), '_blank', 'location=yes,height=570,width=520,scrollbars=yes,status=yes');
+						}
+					}
+				);
+			}
+		});
+		$('#button-autobuilder-export').on('click', function(evt){
 			var selectedIndex=parseInt(getValue('select-autobuilder-index'));
 			var autobuilder=AutoBuilder.readSingle(selectedIndex);
 			if(autobuilder)
 				autobuilder.export().save();
 		});
-		get('button-autobuilder-import').addEventListener('click', function(evt){
-			get('input-file-autobuilder-import').click();
+		$('#button-autobuilder-import').on('click', function(evt){
+			$('#input-file-autobuilder-import').trigger('click');
 		});
 
 		/* experience */
-		get('map-pins-edit').addEventListener('click', function(){
+		$('#map-pins-edit').on('click', function(){
 			TOTKMasterEditor.mini(
 				new Struct('mapPins', [
 					{
@@ -1181,7 +1401,10 @@ SavegameEditor={
 				]),
 				null,
 				_('Map pins editor'),
-				SavegameEditor.refreshCounterMapPins
+				function(){
+					SavegameEditor.mapPins=MapPin.readAll();
+					SavegameEditor.refreshCounterMapPins();
+				}
 			);
 		});
 		get('pristine-weapons-edit').addEventListener('click', function(){
@@ -1288,7 +1511,7 @@ SavegameEditor={
 		this.retranslateSelectOptions(Horse.SADDLES);
 		this.retranslateSelectOptions(Horse.REINS);
 
-		this.selectItem.lastCategory=null;
+		this.itemChangeDropdown.lastCategory=null;
 
 
 		/* prepare editor */
@@ -1337,10 +1560,9 @@ SavegameEditor={
 
 
 
-		/* read items */
-		this.currentItems={
-			'mapPins':MapPin.readAll()
-		};
+		/* map pins */
+		this.mapPins=MapPin.readAll();
+		this.refreshCounterMapPins();
 
 
 
@@ -1350,14 +1572,37 @@ SavegameEditor={
 		setValue('pos-y', -playerPos.z);
 		setValue('pos-z', playerPos.y-105);
 
-		/* map pins */
-		this.refreshCounterMapPins();
-
 		/* completionism */
 		this.refreshCounterAll();
 
 		/* experience */
 		SavegameEditor.experienceCalculate();
+
+
+
+		/* autobuilder favorites */
+		var autobuilderFavorites=new Variable('AutoBuilder.Draft.Content.IsFavorite', 'BoolArray');
+		var autobuilderIndexes=new Variable('AutoBuilder.Draft.Content.Index', 'IntArray');
+		$('#select-autobuilder-index option').each(function(i, elem){
+			var str;
+			if(i<9)
+				str='0'+(i+1);
+			else
+				str=(i+1).toString();
+
+			var realIndex=autobuilderIndexes.value.indexOf(i);
+			if(realIndex!==-1 && autobuilderFavorites.value[realIndex])
+				str+=' &#9733;';
+
+			$(elem).html(str);
+		});
+
+
+
+
+
+
+
 
 		if(TOTKMasterEditor.isLoaded())
 			TOTKMasterEditor.forceFindOffsets=true;
@@ -1404,9 +1649,9 @@ SavegameEditor={
 		};
 
 
-		/* MAP PINS */
-		for(var i=0; i<SavegameEditor.currentItems.mapPins.length; i++){
-			SavegameEditor.currentItems.mapPins[i].save();
+		/* map pins */
+		for(var i=0; i<SavegameEditor.mapPins.length; i++){
+			SavegameEditor.mapPins[i].save();
 		}
 	}
 }

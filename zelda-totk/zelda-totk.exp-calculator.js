@@ -36,13 +36,13 @@ const ExperienceCalculator={
 		if(matches=hashText.match(/^DefeatedEnemyNum.(.*?)$/)){
 			return this.getPrettifiedEnemyName(matches[1])+' - Total defeated';
 		}else if(matches=hashText.match(/^EnemyBattleData.(.*?).DefeatedNoDamageCount$/)){
-			return this.getPrettifiedEnemyName(matches[1])+' - Damageless defeat';
+			return this.getPrettifiedEnemyName(matches[1])+' - Damageless defeats';
 		}else if(matches=hashText.match(/^EnemyBattleData.(.*?).HeadShotCount$/)){
 			return this.getPrettifiedEnemyName(matches[1])+' - Head shots';
 		}else if(matches=hashText.match(/^EnemyBattleData.(.*?).GuardJustCount$/)){
-			return this.getPrettifiedEnemyName(matches[1])+' - Parries';
+			return this.getPrettifiedEnemyName(matches[1])+' - Perfect Parries';
 		}else if(matches=hashText.match(/^EnemyBattleData.(.*?).JustAvoidCount$/)){
-			return this.getPrettifiedEnemyName(matches[1])+' - Avoided battle';
+			return this.getPrettifiedEnemyName(matches[1])+' - Perfect Dodges';
 		}else{
 			return hashText;
 		}
@@ -58,7 +58,7 @@ const ExperienceCalculator={
 			var data=SavegameEditor._readStruct(hashTexts.map(function(hashText){
 				return {hash:hashText, type:'Int'}
 			}));
-			var DefeatedEnemyNum = data[hashTexts[0]];
+			var DefeatedEnemyNum = Math.min(data[hashTexts[0]],10);
 			var DefeatedNoDamageCount = data[hashTexts[1]];
 			var HeadShotCount = data[hashTexts[2]];
 			var GuardJustCount = data[hashTexts[3]];
@@ -79,7 +79,7 @@ const ExperienceCalculator={
 
 			var PointSum = DefeatPoints + DefeatedNoDamagePoints + HeadshotPoints + GuardJustPoints + JustAvoidPoints;
 
-			totalExperience += Math.min(2*MaxNum*Points, PointSum);
+			totalExperience += Math.min(2*DefeatPoints, PointSum);
 		}
 		return totalExperience;
 	},
