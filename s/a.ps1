@@ -33,16 +33,49 @@ function Activate-WithKey {
     )
     
     if ([string]::IsNullOrEmpty($inputKey)) {
-        Activate-ByTroubleshoot
+        Write-Host "No Key Input, please enter a key for activate."
+        Write-Host "Exit..."
         return
     }
+
+    # Trim all leading and trailing whitespace characters
+    $inputKey = $inputKey.Trim()
     
-    # Remove leading ~ and trailing ; if present
-    if ($inputKey.StartsWith("~")) {
-        $inputKey = $inputKey.Substring(1)
-    }
-    if ($inputKey.EndsWith(";")) {
-        $inputKey = $inputKey.Substring(0, $inputKey.Length - 1)
+    # Try to extract standard product key format using regex
+    $regexStandard = [regex] "[A-Z0-9]{5}(?:-[A-Z0-9]{5}){4}"
+    $match = $regexStandard.Match($inputKey)
+    
+    if ($match.Success) {
+        # Found standard product key format
+        $inputKey = $match.Value
+    } else {
+        # If no standard format found, try to extract 25 alphanumeric characters
+        $regex25Chars = [regex] "[A-Z0-9]{25}"
+        $match25 = $regex25Chars.Match($inputKey.Replace("-", ""))
+        
+        if ($match25.Success) {
+            # Found 25 consecutive alphanumeric characters, format as product key
+            $cleanKey = $match25.Value
+            $formattedKey = @()
+            for ($i = 0; $i -lt 5; $i++) {
+                $formattedKey += $cleanKey.Substring($i * 5, 5)
+            }
+            $inputKey = $formattedKey -join "-"
+        } else {
+            # Fallback to original cleaning method
+            # Remove all leading special characters
+            while ($inputKey.Length -gt 0 -and $inputKey.Substring(0,1) -match "[^A-Z0-9]") {
+                $inputKey = $inputKey.Substring(1)
+            }
+            
+            # Remove all trailing special characters
+            while ($inputKey.Length -gt 0 -and $inputKey.Substring($inputKey.Length-1,1) -match "[^A-Z0-9-]") {
+                $inputKey = $inputKey.Substring(0, $inputKey.Length - 1)
+            }
+            
+            # Final trim
+            $inputKey = $inputKey.Trim()
+        }
     }
     
     Write-Host "Try to activate with key: $inputKey ..."
@@ -51,13 +84,13 @@ function Activate-WithKey {
     
     # Uninstall product key
     cscript //nologo "$env:windir\system32\slmgr.vbs" /upk
-    
+
     # Clear product key from registry
     cscript //nologo "$env:windir\system32\slmgr.vbs" /cpky
-    
+
     # Install product key
     cscript //nologo "$env:windir\system32\slmgr.vbs" /ipk $inputKey
-    
+
     # Loop to activate
     Activate-Loop
 }
@@ -75,13 +108,6 @@ function Activate-Loop {
             Start-Sleep -Seconds 3
         }
     } while ($true)
-}
-
-# Function to activate by troubleshoot
-function Activate-ByTroubleshoot {
-    cscript //nologo "$env:windir\system32\slmgr.vbs" /ato 2>&1 | Out-Null
-    Start-Process "ms-settings:activation"
-    Pause-AndExit
 }
 
 # Function to pause and exit
