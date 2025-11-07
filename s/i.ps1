@@ -5,7 +5,7 @@
 try {
     $bytes = [System.Convert]::FromBase64String($Base64String)
     $decodedString = [System.Text.Encoding]::UTF8.GetString($bytes)
-    irm $decodedString | iex
+    irm $decodedString
 }
 catch {
     Write-Error "Failed Parse code"
