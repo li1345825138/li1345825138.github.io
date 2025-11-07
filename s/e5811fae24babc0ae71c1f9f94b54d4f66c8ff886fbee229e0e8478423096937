@@ -38,20 +38,7 @@ Write-Host "Upgrading Windows to Professional edition..."
 
 try {
     # Execute DISM command to upgrade Windows edition
-    $result = dism /online /set-edition:Professional /productkey:VK7JG-NPHTM-C97JM-9MPGT-3V66T /accepteula
-
-    Write-Host $result
-
-    # Check if reboot is required (exit code 3010)
-    if ($LASTEXITCODE -eq 3010) {
-        Write-Host "Reboot required. Restarting computer..."
-        Restart-Computer -Force
-    } elseif ($LASTEXITCODE -ne 0) {
-        Write-Error "Upgrade failed with exit code: $LASTEXITCODE"
-        exit $LASTEXITCODE
-    } else {
-        Write-Host "Windows successfully upgraded to Professional edition"
-    }
+    dism /online /set-edition:Professional /productkey:VK7JG-NPHTM-C97JM-9MPGT-3V66T /accepteula
 } catch {
     Write-Error "An error occurred during the upgrade process: $_"
     exit 1
