@@ -1,0 +1,106 @@
+# Office License Key Management Script
+# PowerShell version of cleanOfficeKey.cmd
+
+# Function to find OSPP.VBS file
+function Find-OSPPFile {
+    # Common Office installation paths
+    $commonPaths = @(
+        "C:\Program Files\Microsoft Office\root\Office16\OSPP.VBS",
+        "C:\Program Files (x86)\Microsoft Office\root\Office16\OSPP.VBS",
+        "C:\Program Files\Microsoft Office\Office16\OSPP.VBS",
+        "C:\Program Files (x86)\Microsoft Office\Office16\OSPP.VBS",
+        "C:\Program Files\Microsoft Office\root\Office15\OSPP.VBS",
+        "C:\Program Files (x86)\Microsoft Office\root\Office15\OSPP.VBS",
+        "C:\Program Files\Microsoft Office\Office15\OSPP.VBS",
+        "C:\Program Files (x86)\Microsoft Office\Office15\OSPP.VBS"
+    )
+    
+    # Check common paths first
+    foreach ($path in $commonPaths) {
+        if (Test-Path $path) {
+            return $path
+        }
+    }
+    
+    # If not found in common paths, search more broadly
+    $searchPaths = @(
+        "C:\Program Files\Microsoft Office",
+        "C:\Program Files (x86)\Microsoft Office"
+    )
+    
+    foreach ($searchPath in $searchPaths) {
+        if (Test-Path $searchPath) {
+            $foundFiles = Get-ChildItem -Path $searchPath -Recurse -Name "OSPP.VBS" -ErrorAction SilentlyContinue
+            if ($foundFiles) {
+                return Join-Path $searchPath $foundFiles[0]
+            }
+        }
+    }
+    
+    # Return nothing if not found
+    return $null
+}
+
+# Display menu options
+Write-Host "Office License Key Management" -ForegroundColor Cyan
+Write-Host "=============================" -ForegroundColor Cyan
+Write-Host "1. Display License Status"
+Write-Host "2. Clean License Key"
+Write-Host ""
+
+# Get user choice
+$userOption = Read-Host "Enter option"
+
+# Find OSPP.VBS file
+$osppPath = Find-OSPPFile
+
+if (-not $osppPath) {
+    Write-Error "Unable to locate OSPP.VBS file. Please ensure Microsoft Office is installed."
+    exit 1
+}
+
+Write-Host "Using OSPP.VBS file: $osppPath" -ForegroundColor Green
+Write-Host ""
+
+# Process user choice
+switch ($userOption) {
+    "1" {
+        Write-Host "Retrieving Office license status..." -ForegroundColor Yellow
+        try {
+            & cscript $osppPath /dstatus
+        }
+        catch {
+            Write-Error "Failed to retrieve license status: $_"
+        }
+    }
+    
+    "2" {
+        # Get key from user
+        $keyString = Read-Host "Enter Key to remove"
+        
+        if ([string]::IsNullOrEmpty($keyString)) {
+            Write-Warning "No key provided. Operation cancelled."
+            break
+        }
+        
+        Write-Host "Removing key: $keyString" -ForegroundColor Yellow
+        
+        try {
+            # Remove the key
+            & cscript $osppPath /unpkey:$keyString
+            
+            # Rearm Office
+            Write-Host "Rearming Office..." -ForegroundColor Yellow
+            & cscript $osppPath /rearm
+            
+            Write-Host "Key removal and rearm completed successfully." -ForegroundColor Green
+        }
+        catch {
+            Write-Error "Failed to clean key: $_"
+        }
+    }
+    
+    default {
+        Write-Warning "Unknown option selected. Please run the script again and choose either 1 or 2."
+    }
+}
