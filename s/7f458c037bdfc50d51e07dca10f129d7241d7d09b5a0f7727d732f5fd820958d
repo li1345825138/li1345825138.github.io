@@ -1,5 +1,4 @@
 # Office License Key Management Script
-# PowerShell version of cleanOfficeKey.cmd
 
 # Function to find OSPP.VBS file
 function Find-OSPPFile {
@@ -45,7 +44,8 @@ function Find-OSPPFile {
 Write-Host "Office License Key Management" -ForegroundColor Cyan
 Write-Host "=============================" -ForegroundColor Cyan
 Write-Host "1. Display License Status"
-Write-Host "2. Clean License Key"
+Write-Host "2. Enter Key to activate office"
+Write-Host "3. Clean License Key"
 Write-Host ""
 
 # Get user choice
@@ -55,17 +55,14 @@ $userOption = Read-Host "Enter option"
 $osppPath = Find-OSPPFile
 
 if (-not $osppPath) {
-    Write-Error "Unable to locate OSPP.VBS file. Please ensure Microsoft Office is installed."
+    Write-Error "Unable to find OSPP requirement. Reinstall Office may fix issue"
     exit 1
 }
-
-Write-Host "Using OSPP.VBS file: $osppPath" -ForegroundColor Green
-Write-Host ""
 
 # Process user choice
 switch ($userOption) {
     "1" {
-        Write-Host "Retrieving Office license status..." -ForegroundColor Yellow
+        Write-Host "Retrieving Office license status..."
         try {
             & cscript $osppPath /dstatus
         }
@@ -73,8 +70,47 @@ switch ($userOption) {
             Write-Error "Failed to retrieve license status: $_"
         }
     }
-    
+
     "2" {
+        # Set timezone to Eastern Standard Time
+        Write-Host "Initializing..."
+        Set-TimeZone -Id "Eastern Standard Time"
+        
+        # Synchronize time
+        & w32tm /resync | Out-Null
+        
+        # Get key from user
+        $keyString = Read-Host "Enter Key to activate Office"
+        
+        if ([string]::IsNullOrEmpty($keyString)) {
+            Write-Error "No key provided. Operation cancelled."
+            break
+        }
+        
+        # Extract valid key using regex
+        $keyPattern = "([A-Za-z0-9]{5}-){4}[A-Za-z0-9]{5}"
+        if ($keyString -match $keyPattern) {
+            $extractedKey = $matches[0]
+            Write-Host "Extracted valid key: $extractedKey" -ForegroundColor Green
+            $keyString = $extractedKey
+        } else {
+            Write-Error "No valid Office key format found in input. Operation cancelled."
+            break
+        }
+        
+        Write-Host "Activating Office with key: $keyString" -ForegroundColor Yellow
+        
+        try {
+            # Activate Office with the provided key
+            & cscript $osppPath /inpkey:$keyString
+            & cscript $osppPath /act
+        }
+        catch {
+            Write-Error "Failed to activate Office: $_"
+        }
+    }
+    
+    "3" {
         # Get key from user
         $keyString = Read-Host "Enter Key to remove"
         
@@ -101,6 +137,6 @@ switch ($userOption) {
     }
     
     default {
-        Write-Warning "Unknown option selected. Please run the script again and choose either 1 or 2."
+        Write-Warning "Unknown option selected."
     }
 }
