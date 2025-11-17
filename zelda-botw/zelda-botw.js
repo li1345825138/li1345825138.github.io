@@ -1,13 +1,13 @@
 /*
-	The legend of Zelda: Breath of the wild v20200218
-	by Marc Robledo 2017-2020
+	The legend of Zelda: Breath of the wild v20250607
+	by Marc Robledo 2017-2025
 */
 var currentEditingItem=0;
 
 SavegameEditor={
 	Name:'The legend of Zelda: Breath of the wild',
 	Filename:'game_data.sav',
-	Version:20200218,
+	Version:20250718,
 
 	/* Constants */
 	Constants:{
@@ -16,9 +16,9 @@ SavegameEditor={
 		STRING64_SIZE:0x80,
 
 		//missing versions: 1.1.1, 1.1.2 and 1.4.1
-		VERSION:				['v1.0', 'v1.1', 'v1.2', 'v1.3', 'v1.3.1', 'Kiosk', 'v1.3.3','v1.3.4', 'v1.4',  'v1.5',  'v1.5*',  'v1.6',  'v1.6*', 'v1.6**','v1.6***'],
-		FILESIZE:				[896976, 897160, 897112, 907824, 907824,  916576,  1020648, 1020648,   1027208, 1027208, 1027248, 1027216, 1027216, 1027216, 1027216],
-		HEADER:					[0x24e2, 0x24ee, 0x2588, 0x29c0, 0x2a46,  0x2f8e,  0x3ef8,  0x3ef9,    0x471a,  0x471b, 0x471b,  0x471e, 0x0f423d, 0x0f423e,0x0f423f],
+		VERSION:				['v1.0', 'v1.1', 'v1.2', 'v1.3', 'v1.3.1', 'Kiosk', 'v1.3.3','v1.3.4', 'v1.4',  'v1.5',  'v1.5*',  'v1.6',  'v1.6*', 'v1.6**','v1.6***','v1.8'],
+		FILESIZE:				[896976, 897160, 897112, 907824, 907824,  916576,  1020648, 1020648,   1027208, 1027208, 1027248, 1027216, 1027216, 1027216, 1027216, 1027248],
+		HEADER:					[0x24e2, 0x24ee, 0x2588, 0x29c0, 0x2a46,  0x2f8e,  0x3ef8,  0x3ef9,    0x471a,  0x471b, 0x471b,  0x471e, 0x0f423d, 0x0f423e,0x0f423f, 0x4730],
 
 		ICON_TYPES:{SWORD: 27, BOW:28, SHIELD:29, POT:30, STAR:31, CHEST:32,SKULL:33,LEAF:34,TOWER:35}
 	},
@@ -250,6 +250,7 @@ SavegameEditor={
 	editItem:function(i){
 		currentEditingItem=i;
 		this.selectItem.value=this._loadItemName(i);
+		this.filterItems(currentTab);
 		document.getElementById('item-name'+i).innerHTML='';
 		document.getElementById('item-name'+i).parentElement.appendChild(this.selectItem);
 		this.selectItem.focus();
@@ -274,6 +275,9 @@ SavegameEditor={
 	},
 	
 	filterItems:function(category){
+		for (let key in this.selectItem.categories) {
+			this.selectItem.categories[key].hidden = (category !== null && category !== key);
+		}
 	},
 
 	_getModifierOffset1:function(type){
@@ -325,19 +329,6 @@ SavegameEditor={
 			arr2.push({name:name, value:arr[i]});
 		}
 		return arr2;
-	},
-
-
-	changeEndianess:function(){
-		var tempFileByteSwapped=new MarcFile(tempFile.fileSize);
-		tempFileByteSwapped.fileType=tempFile.fileType;
-		tempFileByteSwapped.fileName=tempFile.fileName;
-		tempFileByteSwapped.littleEndian=!tempFile.littleEndian;
-		for(var i=0; i<tempFile.fileSize; i+=4){
-			tempFileByteSwapped.writeU32(i, tempFile.readU32(i));
-		}
-		tempFile=tempFileByteSwapped;
-		this.checkValidSavegame();
 	},
 
 	/* check if savegame is valid */
@@ -477,7 +468,7 @@ SavegameEditor={
 		var seconds=timeVal%60;
 		if(seconds<10)seconds='0'+seconds;
 		var minutes=parseInt(timeVal/60)%60;
-		if(minutes<10)seconds='0'+seconds;
+		if(minutes<10)minutes='0'+minutes;
 		return parseInt(timeVal/3600)+':'+minutes+':'+seconds;
 	},
 
@@ -613,11 +604,10 @@ SavegameEditor={
 		}
 
 
-
-
-
-
 		showTab('home');
+
+		/* scale score */
+		setValue('scale-score', BOTWScoreCalculator.calculate());
 	},
 
 	/* save function */
@@ -1034,12 +1024,12 @@ function onScroll(){
 }
 window.addEventListener('scroll', onScroll, false);
 
-if(typeof String.endsWith==='undefined'){
+if(typeof String.prototype.endsWith==='undefined'){
 	String.prototype.endsWith=function(search){
         return (new RegExp(search+'$')).test(this)
     };
 }
-if(typeof String.startsWith==='undefined'){
+if(typeof String.prototype.startsWith==='undefined'){
 	String.prototype.startsWith=function(search){
         return (new RegExp('^'+search)).test(this)
     };
