@@ -2,7 +2,7 @@
 	Cache Service Worker template by mrc 2019
 	mostly based in:
 	https://github.com/GoogleChrome/samples/blob/gh-pages/service-worker/basic/service-worker.js
-	https://github.com/chriscoyier/Simple-Offline-Site/blob/master/service-worker.js
+	https://github.com/chriscoyier/Simple-Offline-Site/blob/master/js/service-worker.js
 	https://gist.github.com/kosamari/7c5d1e8449b2fbc97d372675f16b566e	
 	
 	Note for GitHub Pages:
@@ -30,23 +30,24 @@ caches.keys().then(function(cacheNames){
 });
 
 var PRECACHE_ID='zelda-botw-editor';
-var PRECACHE_VERSION='v5b';
+var PRECACHE_VERSION='v7c';
 var PRECACHE_URLS=[
 	//is hashes file too big for cacheing?
-	'/zelda-botw/','/zelda-botw/index.html',
-	'/zelda-botw/zelda-botw.css',
-	'/zelda-botw/zelda-botw.js',
-	'/zelda-botw/zelda-botw.data.js',
-	'/zelda-botw/zelda-botw.icons.js',
-	'/zelda-botw/zelda-botw.locations.js',
-	'/zelda-botw/zelda-botw.master.js',
-	'/zelda-botw/favicon.png',
-	'/zelda-botw/assets/_blank.png',
-	'/zelda-botw/assets/logo.png',
-	'/zelda-botw/assets/tabs.png',
-	'/zelda-botw/assets/bg_black.jpg',
-	'/zelda-botw/assets/bg_white.jpg',
-	'/savegame-editor.js'
+	'/savegame-editors/zelda-botw/','/savegame-editors/zelda-botw/index.html',
+	'/savegame-editors/zelda-botw/zelda-botw.css',
+	'/savegame-editors/zelda-botw/zelda-botw.js',
+	'/savegame-editors/zelda-botw/zelda-botw.data.js',
+	'/savegame-editors/zelda-botw/zelda-botw.icons.js',
+	'/savegame-editors/zelda-botw/zelda-botw.locations.js',
+	'/savegame-editors/zelda-botw/zelda-botw.score.js',
+	'/savegame-editors/zelda-botw/zelda-botw.master.js',
+	'/savegame-editors/zelda-botw/favicon.png',
+	'/savegame-editors/zelda-botw/assets/_blank.png',
+	'/savegame-editors/zelda-botw/assets/logo.png',
+	'/savegame-editors/zelda-botw/assets/tabs.png',
+	'/savegame-editors/zelda-botw/assets/bg_black.jpg',
+	'/savegame-editors/zelda-botw/assets/bg_white.jpg',
+	'/savegame-editors/savegame-editor.js'
 ];
 
 
