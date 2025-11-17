@@ -1,4 +1,4 @@
-ÿþ#
+###
 # PowerShell version of installDrivers.bat
 
 # Function to check if running as administrator
@@ -92,4 +92,3 @@ if (!(Test-Administrator)) {
     Write-Host "Press Enter to exit..."
     Read-Host | Out-Null
 }
-###
