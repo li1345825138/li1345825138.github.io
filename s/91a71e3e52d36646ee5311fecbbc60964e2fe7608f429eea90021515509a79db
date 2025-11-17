@@ -1,3 +1,4 @@
+ÿþ#
 # PowerShell version of upgradePro.bat
 # Checks for admin rights, and elevates if needed
 # Upgrades Windows edition to Professional with built-in key
@@ -43,3 +44,4 @@ try {
     Write-Error "An error occurred during the upgrade process: $_"
     exit 1
 }
+###

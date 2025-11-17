@@ -1,3 +1,4 @@
+ÿþ#
 # Windows Activation Script - PowerShell Version
 
 # Check if running as Administrator
@@ -125,3 +126,4 @@ if ($isAdmin -or $args[0] -eq "UAC") {
     # Activate with provided key
     Activate-WithKey -inputKey $inputKey
 }
+###

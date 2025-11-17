@@ -1,3 +1,4 @@
+ÿþ#
 # Office License Key Management Script
 
 # Function to find OSPP.VBS file
@@ -140,3 +141,4 @@ switch ($userOption) {
         Write-Warning "Unknown option selected."
     }
 }
+###
