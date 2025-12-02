@@ -2,13 +2,9 @@
 trigger: manual
 ---
 
-# Project Rules (Universal)
-
 ## General Principles
 - All code and comments must be written in **English only**. No other languages are permitted.
-- Before writing any code, **always** use the following MCP services in order:
-    1. `context7` — to gather api information
-    2. `sequentialthinking` — to plan the implementation step-by-step.
+- Your feed back at chat, could be in **Chinese**.
 - If the user's request is ambiguous, incomplete, or lacks necessary details (e.g., expected behavior, input/output format, edge cases), **do not guess**. Instead, ask precise, targeted questions to clarify the requirement. Continue this clarification loop until mutual agreement is reached.
 
 ## Code Formatting (Language-Agnostic)

