@@ -46,7 +46,7 @@ Write-Host "=============================" -ForegroundColor Cyan
 Write-Host "1. Display License Status"
 Write-Host "2. Enter Key to activate office"
 Write-Host "3. Clean License Key"
-Write-Host "4. Remove All Product Keys"
+Write-Host "4. Remove All License Keys"
 Write-Host ""
 
 # Get user choice
@@ -76,18 +76,18 @@ switch ($userOption) {
         # Set timezone to Eastern Standard Time
         Write-Host "Initializing..."
         Set-TimeZone -Id "Eastern Standard Time"
-        
+
         # Synchronize time
         & w32tm /resync | Out-Null
-        
+
         # Get key from user
         $keyString = Read-Host "Enter Key to activate Office"
-        
+
         if ([string]::IsNullOrEmpty($keyString)) {
             Write-Error "No key provided. Operation cancelled."
             break
         }
-        
+
         # Extract valid key using regex
         $keyPattern = "([A-Za-z0-9]{5}-){4}[A-Za-z0-9]{5}"
         if ($keyString -match $keyPattern) {
@@ -98,9 +98,9 @@ switch ($userOption) {
             Write-Error "No valid Office key format found in input. Operation cancelled."
             break
         }
-        
+
         Write-Host "Activating Office with key: $keyString" -ForegroundColor Yellow
-        
+
         try {
             # Activate Office with the provided key
             & cscript $osppPath /inpkey:$keyString
@@ -110,46 +110,46 @@ switch ($userOption) {
             Write-Error "Failed to activate Office: $_"
         }
     }
-    
+
     "3" {
         # Get key from user
         $keyString = Read-Host "Enter Key to remove"
-        
+
         if ([string]::IsNullOrEmpty($keyString)) {
             Write-Warning "No key provided. Operation cancelled."
             break
         }
-        
+
         Write-Host "Removing key: $keyString" -ForegroundColor Yellow
-        
+
         try {
             # Remove the key
             & cscript $osppPath /unpkey:$keyString
-            
+
             # Rearm Office
             Write-Host "Rearming Office..." -ForegroundColor Yellow
             & cscript $osppPath /rearm
-            
+
             Write-Host "Key removal and rearm completed successfully." -ForegroundColor Green
         }
         catch {
             Write-Error "Failed to clean key: $_"
         }
     }
-    
+
     "4" {
-        Write-Host "Removing all product keys..." -ForegroundColor Yellow
-        
+        Write-Host "Removing all License keys..." -ForegroundColor Yellow
+
         try {
             # Get current license status
             Write-Host "Getting current license information..."
             $statusOutput = & cscript $osppPath /dstatus 2>&1
-            
+
             # Parse output to find all product keys
             $keysToRemove = @()
             foreach ($line in $statusOutput) {
                 # Look for lines containing product keys
-                if ($line -match "Product Key.*: .*-([A-Z0-9]{5})") {
+                if ($line -match "Last 5 characters of installed product key: ([A-Z0-9]{5})") {
                     $keyEnding = $matches[1]
                     $keysToRemove += $keyEnding
                 }
