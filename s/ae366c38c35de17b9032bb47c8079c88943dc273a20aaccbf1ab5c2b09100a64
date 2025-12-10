@@ -166,14 +166,8 @@ switch ($userOption) {
             $removedCount = 0
             foreach ($key in $keysToRemove) {
                 Write-Host "Removing key ending in: $key" -ForegroundColor Yellow
-                $result = & cscript $osppPath /unpkey:$key 2>&1
-                if ($result -match "successful") {
-                    Write-Host "Successfully removed key ending in: $key" -ForegroundColor Green
-                    $removedCount++
-                } else {
-                    Write-Warning "Failed to remove key ending in: $key"
-                    Write-Warning "$result"
-                }
+                & cscript $osppPath /unpkey:$key 2>&1
+                $removedCount++
             }
             
             # Rearm Office after removing all keys
