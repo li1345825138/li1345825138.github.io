@@ -22,6 +22,8 @@ if (-not $isAdmin) {
 
     # Start Windows Time service
     Start-Service w32time -ErrorAction Stop 2>&1 | Out-Null
+    w32tm /config /syncfromflags:manual /manualpeerlist:"time.windows.com" 2>&1 | Out-Null
+    Restart-Service w32time
 
     # Resynchronize time
     w32tm /resync 2>&1 | Out-Null
