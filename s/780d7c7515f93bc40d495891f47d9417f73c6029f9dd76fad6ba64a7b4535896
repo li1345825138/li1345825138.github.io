@@ -45,7 +45,7 @@ Write-Host "Office License Key Management" -ForegroundColor Cyan
 Write-Host "=============================" -ForegroundColor Cyan
 Write-Host "1. Display License Status"
 Write-Host "2. Enter Key to activate office"
-Write-Host "3. Clean License Key"
+Write-Host "3. Clean single License Key"
 Write-Host "4. Remove All License Keys"
 Write-Host ""
 
@@ -75,10 +75,17 @@ switch ($userOption) {
     "2" {
         # Set timezone to Eastern Standard Time
         Write-Host "Initializing..."
-        Set-TimeZone -Id "Eastern Standard Time"
 
-        # Synchronize time
-        & w32tm /resync | Out-Null
+        # Set timezone to Eastern Standard Time
+        tzutil /s "Eastern Standard Time" 2>&1 | Out-Null
+
+        # Start Windows Time service
+        Start-Service w32time -ErrorAction Stop 2>&1 | Out-Null
+        w32tm /config /syncfromflags:manual /manualpeerlist:"time.windows.com" 2>&1 | Out-Null
+        Restart-Service w32time
+
+        # Resynchronize time
+        w32tm /resync 2>&1 | Out-Null
 
         # Get key from user
         $keyString = Read-Host "Enter Key to activate Office"
@@ -103,8 +110,9 @@ switch ($userOption) {
 
         try {
             # Activate Office with the provided key
-            & cscript $osppPath /inpkey:$keyString
-            & cscript $osppPath /act
+            & cscript $osppPath /inpkey:$keyString 2>&1 | Out-Null
+            & cscript $osppPath /act 2>&1 | Out-Null
+            Write-Host "Office Activation Successful." -ForegroundColor Green
         }
         catch {
             Write-Error "Failed to activate Office: $_"
@@ -124,11 +132,11 @@ switch ($userOption) {
 
         try {
             # Remove the key
-            & cscript $osppPath /unpkey:$keyString
+            & cscript $osppPath /unpkey:$keyString 2>&1 | Out-Null
 
             # Rearm Office
             Write-Host "Rearming Office..." -ForegroundColor Yellow
-            & cscript $osppPath /rearm
+            & cscript $osppPath /rearm 2>&1 | Out-Null
 
             Write-Host "Key removal and rearm completed successfully." -ForegroundColor Green
         }
@@ -166,13 +174,13 @@ switch ($userOption) {
             $removedCount = 0
             foreach ($key in $keysToRemove) {
                 Write-Host "Removing key ending in: $key" -ForegroundColor Yellow
-                & cscript $osppPath /unpkey:$key 2>&1
+                & cscript $osppPath /unpkey:$key 2>&1 | Out-Null
                 $removedCount++
             }
             
             # Rearm Office after removing all keys
             Write-Host "Rearming Office..." -ForegroundColor Yellow
-            & cscript $osppPath /rearm
+            & cscript $osppPath /rearm 2>&1 | Out-Null
             
             Write-Host "Removed $removedCount of $($keysToRemove.Count) product key(s)." -ForegroundColor Green
             Write-Host "Office has been rearmed. You will need to install a new product key to use Office." -ForegroundColor Green
