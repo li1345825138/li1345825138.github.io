@@ -21,56 +21,44 @@ Public Function GenerateCode128Barcode(inputData As String) As String
         Exit Function
     End If
     
-    ' Validate input
+    ' Validate input - using Code 128B which supports ASCII 32-126
     If Not IsValidCode128Input(inputData) Then
         GenerateCode128Barcode = "ERROR: Invalid characters"
         Exit Function
     End If
     
-    ' Start character for Code 128B
+    ' Start character for Code 128B (value 104)
     Dim barcodeString As String
-    barcodeString = Chr(204)
+    barcodeString = Chr(204)  ' Start B character (Code128 value 104)
     
     ' Calculate checksum - start with value of start character (104 for Start Code B)
     checksum = 104
     
     ' Process each character
     For i = 1 To Len(inputData)
-        charValue = Asc(Mid(inputData, i, 1)) - 32  ' Adjust for Code B (starts at ASCII 32)
+        ' Get ASCII value and convert to Code 128B value (ASCII - 32)
+        charValue = Asc(Mid(inputData, i, 1)) - 32
         
-        ' Add character to barcode string
-        barcodeString = barcodeString & Mid(inputData, i, 1)
-        
-        ' Add to checksum with weighting (starting at 1)
+        ' Add to checksum with weighting (position * character value)
+        ' Weight starts at 1 for first data character
         checksum = checksum + (charValue * i)
     Next i
     
-    ' Calculate final checksum value
+    ' Calculate final checksum value (0-102)
     checksum = checksum Mod 103
     
     ' Add checksum character
-    If checksum >= 0 And checksum <= 95 Then
-        barcodeString = barcodeString & Chr(32 + checksum)
-    ElseIf checksum >= 96 And checksum <= 105 Then
-        barcodeString = barcodeString & Chr(100 + checksum)
-    Else
-        ' Handle special codes
-        Select Case checksum
-            Case 96: barcodeString = barcodeString & Chr(194)
-            Case 97: barcodeString = barcodeString & Chr(195)
-            Case 98: barcodeString = barcodeString & Chr(196)
-            Case 99: barcodeString = barcodeString & Chr(197)
-            Case 100: barcodeString = barcodeString & Chr(198)
-            Case 101: barcodeString = barcodeString & Chr(199)
-            Case 102: barcodeString = barcodeString & Chr(200)
-            Case Else: barcodeString = barcodeString & Chr(201 + (checksum - 103))
-        End Select
-    End If
+    ' According to IDAutomation manual example, the checksum character mapping is:
+    ' checksum value N -> ASCII (32 + N)
+    ' Example: checksum value 71 -> ASCII 103 (character 'g')
+    ' For values 96-102, this produces ASCII 128-134 which are extended ASCII characters
+    ' that are supported by Code128 fonts
+    barcodeString = barcodeString & Chr(32 + checksum)
     
-    ' Add stop character
+    ' Add stop character (Code128 value 106, ASCII 206)
     barcodeString = barcodeString & Chr(206)
     
-    ' Add termination bar
+    ' Add termination bar (ASCII 205)
     barcodeString = barcodeString & Chr(205)
     
     GenerateCode128Barcode = barcodeString
@@ -85,8 +73,8 @@ Public Function IsValidCode128Input(inputData As String) As Boolean
     Dim i As Long
     
     For i = 1 To Len(inputData)
-        ' Code 128 B supports ASCII values from 32 to 127 (printable characters)
-        If Asc(Mid(inputData, i, 1)) < 32 Or Asc(Mid(inputData, i, 1)) > 127 Then
+        ' Code 128 B supports ASCII values from 32 to 126 (printable characters)
+        If Asc(Mid(inputData, i, 1)) < 32 Or Asc(Mid(inputData, i, 1)) > 126 Then
             IsValidCode128Input = False
             Exit Function
         End If
