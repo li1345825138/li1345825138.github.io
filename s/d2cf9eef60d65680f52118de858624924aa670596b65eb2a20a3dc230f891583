@@ -100,6 +100,7 @@ function Activate-WithKey {
 
 # Function to activate in a loop
 function Activate-Loop {
+    Write-Host "Activating..."
     for ($attempt = 1; $attempt -le 3; $attempt++) {
         $result = cscript //nologo "$env:windir\system32\slmgr.vbs" /ato 2>&1
 
