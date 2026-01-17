@@ -41,6 +41,26 @@ function Activate-WithKey {
         return
     }
 
+    # Check if the input key is "-1" for special handling
+    if ($inputKey -eq "-1") {
+        Write-Host "Remove and clean old license..."
+        cscript //nologo "$env:windir\system32\slmgr.vbs" /upk 2>&1 | Out-Null
+        cscript //nologo "$env:windir\system32\slmgr.vbs" /cpky 2>&1 | Out-Null
+        cscript //nologo "$env:windir\system32\slmgr.vbs" /ckms 2>&1 | Out-Null
+
+        Write-Host "Try to Activating without key..."
+        cscript //nologo "$env:windir\system32\slmgr.vbs" /ipk W269N-WFGWX-YVC9B-4J6C9-T83GX 2>&1 | Out-Null
+        cscript //nologo "$env:windir\system32\slmgr.vbs" /skms kms9.msguides.com | Out-Null
+        cscript //nologo "$env:windir\system32\slmgr.vbs" /ato | Out-Null
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Activation Success!"
+        } else {
+            Write-Host "Failure: $_"
+        }
+        Pause-AndExit
+    }
+
     # Trim all leading and trailing whitespace characters
     $inputKey = $inputKey.Trim()
 
@@ -102,7 +122,7 @@ function Activate-WithKey {
 function Activate-Loop {
     Write-Host "Activating..."
     for ($attempt = 1; $attempt -le 3; $attempt++) {
-        $result = cscript //nologo "$env:windir\system32\slmgr.vbs" /ato 2>&1
+        $result = cscript //nologo "$env:windir\system32\slmgr.vbs" /ato 2>&1 | Out-Null
 
         if ($LASTEXITCODE -eq 0) {
             Write-Host "Activation Success!"
