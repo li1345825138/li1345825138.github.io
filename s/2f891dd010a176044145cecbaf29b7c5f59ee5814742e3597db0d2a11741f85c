@@ -31,13 +31,36 @@ function Find-OSPPFile {
         if (Test-Path $searchPath) {
             $foundFiles = Get-ChildItem -Path $searchPath -Recurse -Name "OSPP.VBS" -ErrorAction SilentlyContinue
             if ($foundFiles) {
-                return Join-Path $searchPath $foundFiles[0]
+                # Return the full path of the first found file
+                return Join-Path $searchPath $foundFiles[0] | Get-Item | Select-Object -ExpandProperty FullName
             }
         }
     }
-    
+
     # Return nothing if not found
     return $null
+}
+
+# Function to get all Office product keys from OSPP status output
+function Get-OfficeProductKeys {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$OSPPPath
+    )
+
+    $statusOutput = & cscript $OSPPPath /dstatus 2>&1
+
+    # Parse output to find all product keys
+    $keysArray = @()
+    foreach ($line in $statusOutput) {
+        # Look for lines containing product keys
+        if ($line -match "Last 5 characters of installed product key: ([A-Z0-9]{5})") {
+            $keyEnding = $matches[1]
+            $keysArray += $keyEnding
+        }
+    }
+
+    return $keysArray
 }
 
 # Display menu options
@@ -45,9 +68,8 @@ Write-Host "Office License Key Management" -ForegroundColor Cyan
 Write-Host "=============================" -ForegroundColor Cyan
 Write-Host "1. Display License Status"
 Write-Host "2. Enter Key to activate office"
-Write-Host "3. Clean single License Key"
-Write-Host "4. Reset activation status manually"
-Write-Host "5. Remove All License Keys and reset status"
+Write-Host "3. Remove a single key"
+Write-Host "4. Remove All License Keys and reset status"
 Write-Host ""
 
 # Get user choice
@@ -81,9 +103,9 @@ switch ($userOption) {
         tzutil /s "Eastern Standard Time" 2>&1 | Out-Null
 
         # Start Windows Time service
-        Start-Service w32time -ErrorAction Stop 2>&1 | Out-Null
+        Start-Service w32time -ErrorAction SilentlyContinue 2>&1 | Out-Null
         w32tm /config /syncfromflags:manual /manualpeerlist:"time.windows.com" 2>&1 | Out-Null
-        Restart-Service w32time
+        Restart-Service w32time 2>&1 | Out-Null
 
         # Resynchronize time
         w32tm /resync 2>&1 | Out-Null
@@ -132,45 +154,29 @@ switch ($userOption) {
         Write-Host "Removing key: $keyString" -ForegroundColor Yellow
 
         try {
-            # Remove the key
-            & cscript $osppPath /unpkey:$keyString 2>&1 | Out-Null
+            # Get the list of all current product keys before removal
+            $currentKeys = Get-OfficeProductKeys -OSPPPath $osppPath
+            if ($currentKeys.Count -eq 1 -and $currentKeys[0] -eq $keyString) {
+                # If is the last key, remove and rearm
+                & cscript $osppPath /unpkey:$keyString 2>&1 | Out-Null
+                & cscript $osppPath /rearm 2>&1 | Out-Null
+            } else {
+                # This is not the last key, just remove it
+                & cscript $osppPath /unpkey:$keyString 2>&1 | Out-Null
+            }
+            Write-Host "Key removed successfully." -ForegroundColor Green
         }
         catch {
-            Write-Error "Failed to clean key: $_"
+            Write-Error "Failed to remove key: $_"
         }
     }
 
     "4" {
-        try {
-            # Rearm Office
-            Write-Host "Rearming Office..." -ForegroundColor Yellow
-            & cscript $osppPath /rearm 2>&1 | Out-Null
-
-            Write-Host "Key removal and rearm completed successfully." -ForegroundColor Green
-        } 
-        catch {
-            Write-Error "Failed to reset office activation status"
-            Write-Error "Info: $_"
-        }
-    }
-
-    "5" {
         Write-Host "Removing all License keys..." -ForegroundColor Yellow
 
         try {
-            # Get current license status
             Write-Host "Getting current license information..."
-            $statusOutput = & cscript $osppPath /dstatus 2>&1
-
-            # Parse output to find all product keys
-            $keysToRemove = @()
-            foreach ($line in $statusOutput) {
-                # Look for lines containing product keys
-                if ($line -match "Last 5 characters of installed product key: ([A-Z0-9]{5})") {
-                    $keyEnding = $matches[1]
-                    $keysToRemove += $keyEnding
-                }
-            }
+            $keysToRemove = Get-OfficeProductKeys -OSPPPath $osppPath
             
             if ($keysToRemove.Count -eq 0) {
                 Write-Host "No product keys found to remove." -ForegroundColor Yellow
