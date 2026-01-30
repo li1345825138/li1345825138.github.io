@@ -1,0 +1,367 @@
+# Office License Key Management Script
+
+# Function to find OSPP.VBS file
+function Find-OSPPFile {
+    # Common Office installation paths
+    $commonPaths = @(
+        "C:\Program Files\Microsoft Office\root\Office16\OSPP.VBS",
+        "C:\Program Files (x86)\Microsoft Office\root\Office16\OSPP.VBS",
+        "C:\Program Files\Microsoft Office\Office16\OSPP.VBS",
+        "C:\Program Files (x86)\Microsoft Office\Office16\OSPP.VBS",
+        "C:\Program Files\Microsoft Office\root\Office15\OSPP.VBS",
+        "C:\Program Files (x86)\Microsoft Office\root\Office15\OSPP.VBS",
+        "C:\Program Files\Microsoft Office\Office15\OSPP.VBS",
+        "C:\Program Files (x86)\Microsoft Office\Office15\OSPP.VBS"
+    )
+    
+    # Check common paths first
+    foreach ($path in $commonPaths) {
+        if (Test-Path $path) {
+            return $path
+        }
+    }
+    
+    # If not found in common paths, search more broadly
+    $searchPaths = @(
+        "C:\Program Files\Microsoft Office",
+        "C:\Program Files (x86)\Microsoft Office"
+    )
+    
+    foreach ($searchPath in $searchPaths) {
+        if (Test-Path $searchPath) {
+            $foundFiles = Get-ChildItem -Path $searchPath -Recurse -Name "OSPP.VBS" -ErrorAction SilentlyContinue
+            if ($foundFiles) {
+                # Return the full path of the first found file
+                return Join-Path $searchPath $foundFiles[0] | Get-Item | Select-Object -ExpandProperty FullName
+            }
+        }
+    }
+
+    # Return nothing if not found
+    return $null
+}
+
+# Function to get all Office product keys from OSPP status output
+function Get-OfficeProductKeys {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$OSPPPath
+    )
+
+    $statusOutput = & cscript $OSPPPath /dstatus 2>&1
+
+    # Parse output to find all product keys
+    $keysArray = @()
+    foreach ($line in $statusOutput) {
+        # Look for lines containing product keys
+        if ($line -match "Last 5 characters of installed product key: ([A-Z0-9]{5})") {
+            $keyEnding = $matches[1]
+            $keysArray += $keyEnding
+        }
+    }
+
+    return $keysArray
+}
+
+function Set-OfficeEdition {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$officeEdition
+    )
+    switch ($officeEdition) {
+        "1" {
+            Write-Host "Updating Office to Office 2019 ProPlus Edition..."
+            Write-Host "Please wait..."
+            Start-Process -FilePath "C:\Program Files\Common Files\Microsoft Shared\ClickToRun\OfficeClickToRun.exe" -ArgumentList "platform=x64", "culture=en-us", "productstoadd=ProPlus2019Retail.16_en-us_x-none", "cdnbaseurl.16=http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60", "baseurl.16=http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60", "version.16=16.0.19530.20184", "mediatype.16=CDN", "sourcetype.16=CDN", "deliverymechanism=492350f6-3a01-4f97-b9c0-c7c6ddf67d60", "ProPlus2019Retail.excludedapps.16=groove", "flt.useteamsaddon=disabled", "flt.usebingaddononinstall=disabled", "flt.usebingaddononupdate=disabled", "productstoremove=AllProducts" -Wait
+        }
+
+        "2" {
+            Write-Host "Updating Office to Office 2021 ProPlus Edition..."
+            Write-Host "Please wait..."
+            Start-Process -FilePath "C:\Program Files\Common Files\Microsoft Shared\ClickToRun\OfficeClickToRun.exe" -ArgumentList "platform=x64", "culture=en-us", "productstoadd=ProPlus2021Retail.16_en-us_x-none", "cdnbaseurl.16=http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60", "baseurl.16=http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60", "version.16=16.0.19530.20184", "mediatype.16=CDN", "sourcetype.16=CDN", "deliverymechanism=492350f6-3a01-4f97-b9c0-c7c6ddf67d60", "ProPlus2021Retail.excludedapps.16=groove", "flt.useteamsaddon=disabled", "flt.usebingaddononinstall=disabled", "flt.usebingaddononupdate=disabled", "productstoremove=AllProducts" -Wait
+        }
+
+        "3" {
+            Write-Host "Not support yet"
+        }
+
+        default {
+            Write-Host "Unknow option selected"
+        }
+    }
+}
+
+function Get-InstalledOfficeEditions {
+    # Define registry paths for checking Office installations
+    $regPaths = @(
+        "HKLM:\SOFTWARE\Microsoft\Office\ClickToRun",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Office\ClickToRun"
+    )
+
+    foreach ($regPath in $regPaths) {
+        if (Test-Path $regPath) {
+            try {
+                # Get the ActiveConfiguration to identify installed products
+                $productIdPath = Join-Path $regPath "ProductReleaseIDs"
+                if (Test-Path $productIdPath) {
+                    $activeConfig = Get-ItemProperty -Path $productIdPath -Name "ActiveConfiguration" -ErrorAction SilentlyContinue
+
+                    if ($activeConfig) {
+                        $configName = $activeConfig.ActiveConfiguration
+                        $productPath = Join-Path $productIdPath $configName
+
+                        if (Test-Path $productPath) {
+                            # Get all subkeys under the active configuration
+                            $allSubKeys = Get-ChildItem -Path $productPath
+
+                            $installedEditions = @()
+                            foreach ($subKey in $allSubKeys) {
+                                $subKeyName = $subKey.PSChildName
+                                # Filter for Office product IDs that end with .16 (indicating Office 2016+)
+                                if ($subKeyName -match '\.16$' -and
+                                    ($subKeyName -match 'Retail|Volume|Promotional|Subscription')) {
+                                    $productName = $subKeyName.TrimEnd(".16")
+                                    $installedEditions += $productName
+                                }
+                            }
+
+                            if ($installedEditions.Count -gt 0) {
+                                $result = $installedEditions -join ' '
+                                return $result
+                            }
+                        }
+                    }
+                }
+            }
+            catch {
+                # Continue to next registry path if there's an error
+                continue
+            }
+        }
+    }
+
+    # Check the Wow6432Node as well if primary path doesn't work
+    $regPaths32 = @(
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Office\ClickToRun",
+        "HKLM:\SOFTWARE\Microsoft\Office\ClickToRun"
+    )
+
+    foreach ($regPath in $regPaths32) {
+        if (Test-Path $regPath) {
+            try {
+                # Get the ActiveConfiguration to identify installed products
+                $productIdPath = Join-Path $regPath "ProductReleaseIDs"
+                if (Test-Path $productIdPath) {
+                    $activeConfig = Get-ItemProperty -Path $productIdPath -Name "ActiveConfiguration" -ErrorAction SilentlyContinue
+
+                    if ($activeConfig) {
+                        $configName = $activeConfig.ActiveConfiguration
+                        $productPath = Join-Path $productIdPath $configName
+
+                        if (Test-Path $productPath) {
+                            # Get all subkeys under the active configuration
+                            $allSubKeys = Get-ChildItem -Path $productPath
+
+                            $installedEditions = @()
+                            foreach ($subKey in $allSubKeys) {
+                                $subKeyName = $subKey.PSChildName
+                                # Filter for Office product IDs that end with .16 (indicating Office 2016+)
+                                if ($subKeyName -match '\.16$' -and
+                                    ($subKeyName -match 'Retail|Volume|Promotional|Subscription')) {
+                                    $productName = $subKeyName.TrimEnd(".16")
+                                    $installedEditions += $productName
+                                }
+                            }
+
+                            if ($installedEditions.Count -gt 0) {
+                                $result = $installedEditions -join ' '
+                                return $result
+                            }
+                        }
+                    }
+                }
+            }
+            catch {
+                # Continue to next registry path if there's an error
+                continue
+            }
+        }
+    }
+
+    # If no Office C2R is found, check traditional Office installations
+    $traditionalPaths = @(
+        "HKLM:\SOFTWARE\Microsoft\Office\16.0\Common\InstallRoot",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Office\16.0\Common\InstallRoot"
+    )
+
+    foreach ($path in $traditionalPaths) {
+        if (Test-Path $path) {
+            $installPath = Get-ItemProperty -Path $path -ErrorAction SilentlyContinue
+            if ($installPath.Path) {
+                Write-Host "Traditional Office installation found"
+                return "Traditional Office Installation"
+            }
+        }
+    }
+
+    Write-Host "No Office installation found"
+    return $null
+}
+
+# Display menu options
+Write-Host "Office License Key Management" -ForegroundColor Cyan
+Write-Host "=============================" -ForegroundColor Cyan
+Write-Host "1. Display License Status"
+Write-Host "2. Enter Key to activate office"
+Write-Host "3. Remove a single key"
+Write-Host "4. Remove All License Keys and reset status"
+Write-Host "5. Change Office Edition"
+Write-Host ""
+
+# Get user choice
+$userOption = Read-Host "Enter option"
+
+# Find OSPP.VBS file
+$osppPath = Find-OSPPFile
+
+if (-not $osppPath) {
+    Write-Error "Unable to find OSPP requirement. Reinstall Office may fix issue"
+    exit 1
+}
+
+# Process user choice
+switch ($userOption) {
+    "1" {
+        $officeInfo = Get-InstalledOfficeEditions
+        Write-Host "Installed Office Edition: $officeInfo"
+        Write-Host "Retrieving Office license status..."
+        try {
+            & cscript $osppPath /dstatus
+        }
+        catch {
+            Write-Error "Failed to retrieve license status: $_"
+        }
+    }
+
+    "2" {
+        # Set timezone to Eastern Standard Time
+        Write-Host "Initializing..."
+
+        # Set timezone to Eastern Standard Time
+        tzutil /s "Eastern Standard Time" 2>&1 | Out-Null
+
+        # Start Windows Time service
+        Start-Service w32time -ErrorAction SilentlyContinue 2>&1 | Out-Null
+        w32tm /config /syncfromflags:manual /manualpeerlist:"time.windows.com" 2>&1 | Out-Null
+        Restart-Service w32time 2>&1 | Out-Null
+
+        # Resynchronize time
+        w32tm /resync 2>&1 | Out-Null
+
+        # Get key from user
+        $keyString = Read-Host "Enter Key to activate Office"
+
+        if ([string]::IsNullOrEmpty($keyString)) {
+            Write-Error "No key provided. Operation cancelled."
+            break
+        }
+
+        # Extract valid key using regex
+        $keyPattern = "([A-Za-z0-9]{5}-){4}[A-Za-z0-9]{5}"
+        if ($keyString -match $keyPattern) {
+            $extractedKey = $matches[0]
+            Write-Host "Extracted valid key: $extractedKey" -ForegroundColor Green
+            $keyString = $extractedKey
+        } else {
+            Write-Error "No valid Office key format found in input. Operation cancelled."
+            break
+        }
+
+        Write-Host "Activating Office with key: $keyString" -ForegroundColor Yellow
+
+        try {
+            # Activate Office with the provided key
+            & cscript $osppPath /inpkey:$keyString 2>&1 | Out-Null
+            & cscript $osppPath /act 2>&1 | Out-Null
+            Write-Host "Office Activation Successful." -ForegroundColor Green
+        }
+        catch {
+            Write-Error "Failed to activate Office: $_"
+        }
+    }
+
+    "3" {
+        # Get key from user
+        $keyString = Read-Host "Enter Key to remove"
+
+        if ([string]::IsNullOrEmpty($keyString)) {
+            Write-Warning "No key provided. Operation cancelled."
+            break
+        }
+
+        Write-Host "Removing key: $keyString" -ForegroundColor Yellow
+
+        try {
+            # Get the list of all current product keys before removal
+            $currentKeys = Get-OfficeProductKeys -OSPPPath $osppPath
+            if ($currentKeys.Count -eq 1 -and $currentKeys[0] -eq $keyString) {
+                # If is the last key, remove and rearm
+                & cscript $osppPath /unpkey:$keyString 2>&1 | Out-Null
+                & cscript $osppPath /rearm 2>&1 | Out-Null
+            } else {
+                # This is not the last key, just remove it
+                & cscript $osppPath /unpkey:$keyString 2>&1 | Out-Null
+            }
+            Write-Host "Key removed successfully." -ForegroundColor Green
+        }
+        catch {
+            Write-Error "Failed to remove key: $_"
+        }
+    }
+
+    "4" {
+        Write-Host "Removing all License keys..." -ForegroundColor Yellow
+
+        try {
+            Write-Host "Getting current license information..."
+            $keysToRemove = Get-OfficeProductKeys -OSPPPath $osppPath
+            
+            if ($keysToRemove.Count -eq 0) {
+                Write-Host "No product keys found to remove." -ForegroundColor Yellow
+                break
+            }
+            
+            Write-Host "Found $($keysToRemove.Count) product key(s) to remove." -ForegroundColor Yellow
+            
+            # Remove each key
+            $removedCount = 0
+            foreach ($key in $keysToRemove) {
+                Write-Host "Removing key ending in: $key" -ForegroundColor Yellow
+                & cscript $osppPath /unpkey:$key 2>&1 | Out-Null
+                $removedCount++
+            }
+            
+            # Rearm Office after removing all keys
+            Write-Host "Rearming Office..." -ForegroundColor Yellow
+            & cscript $osppPath /rearm 2>&1 | Out-Null
+            
+            Write-Host "Removed $removedCount of $($keysToRemove.Count) product key(s)." -ForegroundColor Green
+            Write-Host "Office has been rearmed. You will need to install a new product key to use Office." -ForegroundColor Green
+        }
+        catch {
+            Write-Error "Failed to remove all product keys: $_"
+        }
+    }
+
+    "5" {
+        Write-Host "1. Office 2019 ProPlus"
+        Write-Host "2. Office 2021 ProPlus"
+        Write-Host "3. Office 365 (planning)"
+        $officeEdition = Read-Host "Enter Option"
+        Set-OfficeEdition -officeEdition $officeEdition
+    }
+    
+    default {
+        Write-Warning "Unknown option selected."
+    }
+}
