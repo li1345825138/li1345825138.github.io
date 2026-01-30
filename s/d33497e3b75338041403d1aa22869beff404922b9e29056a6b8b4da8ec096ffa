@@ -70,6 +70,7 @@ function Get-OfficeProductKeys {
     return $keysArray
 }
 
+# Set office into target edition
 function Set-OfficeEdition {
     param (
         [Parameter(Mandatory=$true)]
@@ -370,6 +371,14 @@ switch ($userOption) {
         Write-Host "3. Office 365 (planning)"
         $officeEdition = Read-Host "Enter Option"
         Set-OfficeEdition -officeEdition $officeEdition
+        $keysToRemove = Get-OfficeProductKeys -OSPPPath $osppPath
+        if ($keysToRemove.Count -eq 0) {
+            break
+        }
+        foreach ($key in $keysToRemove) {
+            & cscript $osppPath /unpkey:$key 2>&1 | Out-Null
+        }
+        & cscript $osppPath /rearm 2>&1 | Out-Null
     }
     
     default {
