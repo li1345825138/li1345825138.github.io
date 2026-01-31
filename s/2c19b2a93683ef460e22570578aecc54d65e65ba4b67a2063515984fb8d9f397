@@ -221,13 +221,14 @@ if (!(Test-Administrator)) {
 }
 
 # Display menu options
-Write-Host "Office License Key Management" -ForegroundColor Cyan
+Write-Host "Microsoft Office Management" -ForegroundColor Cyan
 Write-Host "=============================" -ForegroundColor Cyan
 Write-Host "1. Display License Status"
 Write-Host "2. Enter Key to activate office"
 Write-Host "3. Remove a single key"
 Write-Host "4. Remove All License Keys and reset status"
 Write-Host "5. Change Office Edition"
+Write-Host "6. Remove All Office Products"
 Write-Host ""
 
 # Get user choice
@@ -379,6 +380,12 @@ switch ($userOption) {
             & cscript $osppPath /unpkey:$key 2>&1 | Out-Null
         }
         & cscript $osppPath /rearm 2>&1 | Out-Null
+    }
+
+    "6" {
+        Write-Host "Removing all Microsoft Office Product."
+        Write-Host "Please wait..."
+        Start-Process -FilePath "C:\Program Files\Common Files\Microsoft Shared\ClickToRun\OfficeClickToRun.exe" -ArgumentList "platform=x64", "productstoremove=AllProducts" -Wait
     }
     
     default {
