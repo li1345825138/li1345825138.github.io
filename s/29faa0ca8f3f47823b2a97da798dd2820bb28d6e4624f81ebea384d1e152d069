@@ -76,26 +76,80 @@ function Set-OfficeEdition {
         [Parameter(Mandatory=$true)]
         [string]$officeEdition
     )
+    $commonArgsTemplate = @{
+        Platform = "x64"
+        Culture = "en-us"
+        CDNBaseUrl = "http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+        BaseUrl = "http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+        MediaType = "CDN"
+        SourceType = "CDN"
+        DeliveryMechanism = "492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+        FilterTeamsAddon = "disabled"
+        FilterBingInstall = "disabled"
+        FilterBingUpdate = "disabled"
+        RemoveProducts = "AllProducts"
+    }
+
+    $officeConfigurations = @{
+        "1" = @{
+            DisplayName = "Office 2019 ProPlus"
+            ProductToAdd = "ProPlus2019Retail.16_en-us_x-none"
+            ExcludedApps = "groove,lync,onedrive,teams"
+            Version = "16.0.19530.20184"
+        }
+        "2" = @{
+            DisplayName = "Office 2021 ProPlus"
+            ProductToAdd = "ProPlus2021Retail.16_en-us_x-none"
+            ExcludedApps = "groove,onedrive,teams"
+            Version = "16.0.19530.20184"
+        }
+        "3" = @{
+            DisplayName = "Office 2024 ProPlus"
+            ProductToAdd = "ProPlus2024Retail.16_en-us_x-none"
+            ExcludedApps = "groove,onedrive,teams"
+            Version = "16.0.19628.20150"
+        }
+        "4" = @{
+            DisplayName = "Office 365 ProPlus"
+            ProductToAdd = "O365ProPlusRetail.16_en-us_x-none"
+            ExcludedApps = "groove,lync,onedrive,teams"
+            Version = "16.0.19628.20150"
+        }
+    }
+
     switch ($officeEdition) {
-        "1" {
-            Write-Host "Updating Office to Office 2019 ProPlus Edition..."
-            Write-Host "Please wait..."
-            Start-Process -FilePath "C:\Program Files\Common Files\Microsoft Shared\ClickToRun\OfficeClickToRun.exe" -ArgumentList "platform=x64", "culture=en-us", "productstoadd=ProPlus2019Retail.16_en-us_x-none", "cdnbaseurl.16=http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60", "baseurl.16=http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60", "version.16=16.0.19530.20184", "mediatype.16=CDN", "sourcetype.16=CDN", "deliverymechanism=492350f6-3a01-4f97-b9c0-c7c6ddf67d60", "ProPlus2019Retail.excludedapps.16=groove,lync,onedrive,teams", "flt.useteamsaddon=disabled", "flt.usebingaddononinstall=disabled", "flt.usebingaddononupdate=disabled", "productstoremove=AllProducts" -Wait
-        }
-
-        "2" {
-            Write-Host "Updating Office to Office 2021 ProPlus Edition..."
-            Write-Host "Please wait..."
-            Start-Process -FilePath "C:\Program Files\Common Files\Microsoft Shared\ClickToRun\OfficeClickToRun.exe" -ArgumentList "platform=x64", "culture=en-us", "productstoadd=ProPlus2021Retail.16_en-us_x-none", "cdnbaseurl.16=http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60", "baseurl.16=http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60", "version.16=16.0.19530.20184", "mediatype.16=CDN", "sourcetype.16=CDN", "deliverymechanism=492350f6-3a01-4f97-b9c0-c7c6ddf67d60", "ProPlus2021Retail.excludedapps.16=groove,onedrive,teams", "flt.useteamsaddon=disabled", "flt.usebingaddononinstall=disabled", "flt.usebingaddononupdate=disabled", "productstoremove=AllProducts" -Wait
-        }
-
-        "3" {
-            Write-Host "Not support yet"
-        }
-
+        "1" { $config = $officeConfigurations."1" }
+        "2" { $config = $officeConfigurations."2" }
+        "3" { $config = $officeConfigurations."3" }
+        "4" { $config = $officeConfigurations."4" }
         default {
-            Write-Host "Unknow option selected"
+            Write-Host "Unknown option selected"
+            exit 1
         }
+    }
+
+    if ($config) {
+        Write-Host "Updating Office to $($config.DisplayName) Edition..."
+        Write-Host "Please wait..."
+
+        $args = @(
+            "platform=$($commonArgsTemplate.Platform)",
+            "culture=$($commonArgsTemplate.Culture)",
+            "productstoadd=$($config.ProductToAdd)",
+            "cdnbaseurl.16=$($commonArgsTemplate.CDNBaseUrl)",
+            "baseurl.16=$($commonArgsTemplate.BaseUrl)",
+            "version.16=$($config.Version)",
+            "mediatype.16=$($commonArgsTemplate.MediaType)",
+            "sourcetype.16=$($commonArgsTemplate.SourceType)",
+            "deliverymechanism=$($commonArgsTemplate.DeliveryMechanism)",
+            "$($config.ProductToAdd.Split('.')[0]).excludedapps.16=$($config.ExcludedApps)",
+            "flt.useteamsaddon=$($commonArgsTemplate.FilterTeamsAddon)",
+            "flt.usebingaddononinstall=$($commonArgsTemplate.FilterBingInstall)",
+            "flt.usebingaddononupdate=$($commonArgsTemplate.FilterBingUpdate)",
+            "productstoremove=$($commonArgsTemplate.RemoveProducts)"
+        )
+
+        Start-Process -FilePath "C:\Program Files\Common Files\Microsoft Shared\ClickToRun\OfficeClickToRun.exe" -ArgumentList $args -Wait
     }
 }
 
@@ -369,7 +423,8 @@ switch ($userOption) {
     "5" {
         Write-Host "1. Office 2019 ProPlus"
         Write-Host "2. Office 2021 ProPlus"
-        Write-Host "3. Office 365 (planning)"
+        Write-Host "3. Office 2024 ProPlus"
+        Write-Host "4. Office 365 ProPlus"
         $officeEdition = Read-Host "Enter Option"
         Set-OfficeEdition -officeEdition $officeEdition
         $keysToRemove = Get-OfficeProductKeys -OSPPPath $osppPath
@@ -383,7 +438,7 @@ switch ($userOption) {
     }
 
     "6" {
-        Write-Host "Removing all Microsoft Office Product."
+        Write-Host "Removing all Microsoft Office Products."
         Write-Host "Please wait..."
         Start-Process -FilePath "C:\Program Files\Common Files\Microsoft Shared\ClickToRun\OfficeClickToRun.exe" -ArgumentList "platform=x64", "productstoremove=AllProducts" -Wait
     }
