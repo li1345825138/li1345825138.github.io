@@ -141,7 +141,6 @@ function Activate-Loop {
 function Pause-AndExit {
     Write-Host "Press any key to continue..."
     $HOST.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") | Out-Null
-    exit
 }
 
 # Main execution
