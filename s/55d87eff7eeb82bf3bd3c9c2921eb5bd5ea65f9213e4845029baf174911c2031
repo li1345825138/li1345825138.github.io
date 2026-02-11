@@ -126,7 +126,7 @@ function Activate-Loop {
 
         if ($LASTEXITCODE -eq 0) {
             Write-Host "Activation Success!"
-            Pause-AndExit
+            return
         } else {
             Write-Host "Failure, Re-trying... (Attempt $attempt of 3)"
             Start-Sleep -Seconds 3
@@ -134,13 +134,6 @@ function Activate-Loop {
     }
 
     Write-Host "Activation failed, issue might cause by key"
-    Pause-AndExit
-}
-
-# Function to pause and exit
-function Pause-AndExit {
-    Write-Host "Press any key to continue..."
-    $HOST.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") | Out-Null
 }
 
 # Main execution
