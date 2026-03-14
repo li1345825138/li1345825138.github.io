@@ -424,7 +424,7 @@ switch ($userOption) {
         Write-Host "1. Office 2019 ProPlus"
         Write-Host "2. Office 2021 ProPlus"
         Write-Host "3. Office 2024 ProPlus"
-        Write-Host "4. Office 365 ProPlus"
+        Write-Host "4. Office O365 ProPlus"
         $officeEdition = Read-Host "Enter Option"
         Set-OfficeEdition -officeEdition $officeEdition
         $keysToRemove = Get-OfficeProductKeys -OSPPPath $osppPath
