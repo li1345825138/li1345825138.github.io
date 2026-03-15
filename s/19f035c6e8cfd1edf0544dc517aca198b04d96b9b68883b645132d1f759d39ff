@@ -58,7 +58,7 @@ function Activate-WithKey {
         } else {
             Write-Host "Failure: $_"
         }
-        Pause-AndExit
+        return
     }
 
     # Trim all leading and trailing whitespace characters
