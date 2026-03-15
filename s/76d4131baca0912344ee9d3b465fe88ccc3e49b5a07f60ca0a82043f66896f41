@@ -61,6 +61,18 @@ function Activate-WithKey {
         return
     }
 
+    # Check if the input key is "0" for special handling
+    if ($inputKey -eq "0") {
+            Write-Host "Resetting activation status"
+            cscript //nologo "$env:windir\system32\slmgr.vbs" /upk 2>&1 | Out-Null
+            cscript //nologo "$env:windir\system32\slmgr.vbs" /cpky 2>&1 | Out-Null
+            cscript //nologo "$env:windir\system32\slmgr.vbs" /ckms 2>&1 | Out-Null
+            cscript //nologo "$env:windir\system32\slmgr.vbs" /rearm 2>&1 | Out-Null
+            shutdown /r /t 0
+
+            return
+        }
+
     # Trim all leading and trailing whitespace characters
     $inputKey = $inputKey.Trim()
 
