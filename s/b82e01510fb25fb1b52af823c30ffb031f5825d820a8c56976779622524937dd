@@ -124,7 +124,7 @@ function Set-OfficeEdition {
         "4" { $config = $officeConfigurations."4" }
         default {
             Write-Host "Unknown option selected"
-            exit 1
+            return
         }
     }
 
@@ -271,7 +271,7 @@ function Get-InstalledOfficeEditions {
 
 if (!(Test-Administrator)) {
     Write-Host "Run this script in Administrator mode!"
-    exit 1
+    return
 }
 
 # Display menu options
@@ -293,7 +293,7 @@ $osppPath = Find-OSPPFile
 
 if (-not $osppPath) {
     Write-Error "Unable to find OSPP requirement. Reinstall Office may fix issue"
-    exit 1
+    return
 }
 
 # Process user choice
