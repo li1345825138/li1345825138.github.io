@@ -79,11 +79,8 @@ function Set-OfficeEdition {
     $commonArgsTemplate = @{
         Platform = "x64"
         Culture = "en-us"
-        CDNBaseUrl = "http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
-        BaseUrl = "http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
         MediaType = "CDN"
         SourceType = "CDN"
-        DeliveryMechanism = "492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
         FilterTeamsAddon = "disabled"
         FilterBingInstall = "disabled"
         FilterBingUpdate = "disabled"
@@ -93,27 +90,35 @@ function Set-OfficeEdition {
     $officeConfigurations = @{
         "1" = @{
             DisplayName = "Office 2019 ProPlus"
+            CDNBaseUrl = "http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+            BaseUrl = "http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+            DeliveryMechanism = "492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
             ProductToAdd = "ProPlus2019Retail.16_en-us_x-none"
             ExcludedApps = "groove,lync,onedrive,teams"
-            Version = "16.0.19530.20184"
         }
         "2" = @{
             DisplayName = "Office 2021 ProPlus"
+            CDNBaseUrl = "http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+            BaseUrl = "http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+            DeliveryMechanism = "492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
             ProductToAdd = "ProPlus2021Retail.16_en-us_x-none"
             ExcludedApps = "groove,onedrive,teams"
-            Version = "16.0.19530.20184"
         }
         "3" = @{
             DisplayName = "Office 2024 ProPlus"
+            CDNBaseUrl = "http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+            BaseUrl = "http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+            DeliveryMechanism = "492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
             ProductToAdd = "ProPlus2024Retail.16_en-us_x-none"
             ExcludedApps = "groove,onedrive,teams"
-            Version = "16.0.19628.20150"
         }
         "4" = @{
             DisplayName = "Office 365 ProPlus"
+            CDNBaseUrl = "http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+            BaseUrl = "http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
+            DeliveryMechanism = "492350f6-3a01-4f97-b9c0-c7c6ddf67d60"
             ProductToAdd = "O365ProPlusRetail.16_en-us_x-none"
             ExcludedApps = "groove,lync,onedrive,teams"
-            Version = "16.0.19628.20150"
         }
     }
 
@@ -136,12 +141,11 @@ function Set-OfficeEdition {
             "platform=$($commonArgsTemplate.Platform)",
             "culture=$($commonArgsTemplate.Culture)",
             "productstoadd=$($config.ProductToAdd)",
-            "cdnbaseurl.16=$($commonArgsTemplate.CDNBaseUrl)",
-            "baseurl.16=$($commonArgsTemplate.BaseUrl)",
-            "version.16=$($config.Version)",
+            "cdnbaseurl.16=$($config.CDNBaseUrl)",
+            "baseurl.16=$($config.BaseUrl)",
             "mediatype.16=$($commonArgsTemplate.MediaType)",
             "sourcetype.16=$($commonArgsTemplate.SourceType)",
-            "deliverymechanism=$($commonArgsTemplate.DeliveryMechanism)",
+            "deliverymechanism=$($config.DeliveryMechanism)",
             "$($config.ProductToAdd.Split('.')[0]).excludedapps.16=$($config.ExcludedApps)",
             "flt.useteamsaddon=$($commonArgsTemplate.FilterTeamsAddon)",
             "flt.usebingaddononinstall=$($commonArgsTemplate.FilterBingInstall)",
