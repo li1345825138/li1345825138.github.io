@@ -95,21 +95,25 @@ function Set-OfficeEdition {
             DisplayName = "Office 2019 ProPlus"
             ProductToAdd = "ProPlus2019Retail.16_en-us_x-none"
             ExcludedApps = "groove,lync,onedrive,teams"
+            Version = "16.0.19530.20184"
         }
         "2" = @{
             DisplayName = "Office 2021 ProPlus"
             ProductToAdd = "ProPlus2021Retail.16_en-us_x-none"
             ExcludedApps = "groove,onedrive,teams"
+            Version = "16.0.19530.20184"
         }
         "3" = @{
             DisplayName = "Office 2024 ProPlus"
             ProductToAdd = "ProPlus2024Retail.16_en-us_x-none"
             ExcludedApps = "groove,onedrive,teams"
+            Version = "16.0.19628.20150"
         }
         "4" = @{
             DisplayName = "Office 365 ProPlus"
             ProductToAdd = "O365ProPlusRetail.16_en-us_x-none"
             ExcludedApps = "groove,lync,onedrive,teams"
+            Version = "16.0.19628.20150"
         }
     }
 
@@ -134,6 +138,7 @@ function Set-OfficeEdition {
             "productstoadd=$($config.ProductToAdd)",
             "cdnbaseurl.16=$($commonArgsTemplate.CDNBaseUrl)",
             "baseurl.16=$($commonArgsTemplate.BaseUrl)",
+            "version.16=$($config.Version)",
             "mediatype.16=$($commonArgsTemplate.MediaType)",
             "sourcetype.16=$($commonArgsTemplate.SourceType)",
             "deliverymechanism=$($commonArgsTemplate.DeliveryMechanism)",
