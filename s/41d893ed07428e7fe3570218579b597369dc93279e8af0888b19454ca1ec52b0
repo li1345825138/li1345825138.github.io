@@ -36,11 +36,11 @@ function Find-OSPPFile {
     
     foreach ($searchPath in $searchPaths) {
         if (Test-Path $searchPath) {
-            $foundFiles = Get-ChildItem -Path $searchPath -Recurse -Name "OSPP.VBS" -ErrorAction SilentlyContinue
-            if ($foundFiles) {
-                # Return the full path of the first found file
-                return Join-Path $searchPath $foundFiles[0] | Get-Item | Select-Object -ExpandProperty FullName
-            }
+            $foundFile = Get-ChildItem -Path $searchPath -Recurse -Name "OSPP.VBS" -ErrorAction SilentlyContinue | Select-Object
+              -First 1
+              if ($foundFile) {
+                  return Join-Path $searchPath $foundFile
+              }
         }
     }
 
