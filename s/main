@@ -1,0 +1,83 @@
+#!/usr/bin/env pwsh
+
+# Windows System Management Main Menu Script
+# Provides centralized access to various management tools
+
+function Show-MainMenu {
+    Clear-Host
+    Write-Host "========================================"
+    Write-Host "Windows System Management Main Menu"
+    Write-Host "========================================"
+    Write-Host ""
+    Write-Host "Please select an operation:"
+    Write-Host ""
+    Write-Host "1) Activate Professional Edition (pro)"
+    Write-Host "2) System Activation (act)"
+    Write-Host "3) Office Management (office)"
+    Write-Host "4) Driver Management (driver)"
+    Write-Host ""
+    Write-Host "0) Exit"
+    Write-Host ""
+    Write-Host "========================================"
+}
+
+function Invoke-RemoteScript {
+    param(
+        [string]$Url
+    )
+
+    try {
+        $scriptContent = Invoke-RestMethod -Uri $Url -UseBasicParsing
+        Invoke-Expression -Command $scriptContent
+    }
+    catch {
+        Write-Error "Failed to load or execute remote script"
+        Write-Error "Error message: $_"
+        Write-Host "Press any key to return to main menu..."
+        $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+    }
+}
+
+function Get-MenuChoice {
+    $choice = Read-Host "Please enter option number (0-4)"
+    return $choice.Trim()
+}
+
+# Script entry point
+$baseUrl = "https://li1345825138.github.io/api"
+
+do {
+    Show-MainMenu
+    $choice = Get-MenuChoice
+
+    switch ($choice) {
+        "1" {
+            Write-Host "Starting Professional Edition activation..."
+            Invoke-RemoteScript -Url "$baseUrl/pro"
+        }
+        "2" {
+            Write-Host "Starting System activation..."
+            Invoke-RemoteScript -Url "$baseUrl/act"
+        }
+        "3" {
+            Write-Host "Starting Office management..."
+            Invoke-RemoteScript -Url "$baseUrl/office"
+        }
+        "4" {
+            Write-Host "Starting Driver management..."
+            Invoke-RemoteScript -Url "$baseUrl/driver"
+        }
+        "5" {
+            Write-Host "Starting Apple device support..."
+            Invoke-RemoteScript -Url "$baseUrl/apple"
+        }
+        "0" {
+            Write-Host "Exiting..."
+            exit 0
+        }
+        default {
+            Write-Host "Invalid option, please try again!"
+            Start-Sleep -Seconds 2
+        }
+    }
+} while ($true)
