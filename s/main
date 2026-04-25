@@ -11,10 +11,10 @@ function Show-MainMenu {
     Write-Host ""
     Write-Host "Please select an operation:"
     Write-Host ""
-    Write-Host "1) Activate Professional Edition (pro)"
-    Write-Host "2) System Activation (act)"
-    Write-Host "3) Office Management (office)"
-    Write-Host "4) Driver Management (driver)"
+    Write-Host "1) Activate Professional Edition"
+    Write-Host "2) System Activation"
+    Write-Host "3) Office Management"
+    Write-Host "4) Driver Management"
     Write-Host ""
     Write-Host "0) Exit"
     Write-Host ""
@@ -73,11 +73,11 @@ do {
         }
         "0" {
             Write-Host "Exiting..."
-            exit 0
+            return
         }
         default {
             Write-Host "Invalid option, please try again!"
-            Start-Sleep -Seconds 2
         }
     }
+    Read-Host "Press Enter to continue..."
 } while ($true)
