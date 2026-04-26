@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-本文件为 Claude Code (claude.ai/code) 在操作此仓库时提供指导。所有回答必须使用中文，需要使用联网搜索功能时请仅使用 web-search mcp 工具，禁止使用内置的 Web Search 工具。
+本文件为 Claude Code 在操作此仓库时提供指导。
 
 ## 项目概述
 
