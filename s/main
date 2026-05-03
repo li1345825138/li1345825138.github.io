@@ -11,7 +11,7 @@ function Show-MainMenu {
     Write-Host ""
     Write-Host "Please select an operation:"
     Write-Host ""
-    Write-Host "1) Activate Professional Edition"
+    Write-Host "1) Upgrade to Professional Edition"
     Write-Host "2) System Activation"
     Write-Host "3) Office Management"
     Write-Host "4) Driver Management"

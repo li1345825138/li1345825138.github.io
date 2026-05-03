@@ -1,3 +1,4 @@
+#!/usr/bin/env pwsh
 # Office License Key Management Script
 
 # Function to check if running as administrator
@@ -20,20 +21,20 @@ function Find-OSPPFile {
         "C:\Program Files\Microsoft Office\Office15\OSPP.VBS",
         "C:\Program Files (x86)\Microsoft Office\Office15\OSPP.VBS"
     )
-    
+
     # Check common paths first
     foreach ($path in $commonPaths) {
         if (Test-Path $path) {
             return $path
         }
     }
-    
+
     # If not found in common paths, search more broadly
     $searchPaths = @(
         "C:\Program Files\Microsoft Office",
         "C:\Program Files (x86)\Microsoft Office"
     )
-    
+
     foreach ($searchPath in $searchPaths) {
         if (Test-Path $searchPath) {
             $foundFile = Get-ChildItem -Path $searchPath -Recurse -Name "OSPP.VBS" -ErrorAction SilentlyContinue | Select-Object
@@ -287,11 +288,12 @@ if (!(Test-Administrator)) {
 Write-Host "Microsoft Office Management" -ForegroundColor Cyan
 Write-Host "=============================" -ForegroundColor Cyan
 Write-Host "1. Display License Status"
-Write-Host "2. Enter Key to activate office"
+Write-Host "2. Enter Key to activate Office"
 Write-Host "3. Remove a single key"
 Write-Host "4. Remove All License Keys and reset status"
 Write-Host "5. Change Office Edition"
 Write-Host "6. Remove All Office Products"
+Write-Host "7. Process Activation Keys from CSV in batch (Beta)"
 Write-Host ""
 
 # Get user choice
@@ -401,14 +403,14 @@ switch ($userOption) {
         try {
             Write-Host "Getting current license information..."
             $keysToRemove = Get-OfficeProductKeys -OSPPPath $osppPath
-            
+
             if ($keysToRemove.Count -eq 0) {
                 Write-Host "No product keys found to remove." -ForegroundColor Yellow
                 break
             }
-            
+
             Write-Host "Found $($keysToRemove.Count) product key(s) to remove." -ForegroundColor Yellow
-            
+
             # Remove each key
             $removedCount = 0
             foreach ($key in $keysToRemove) {
@@ -416,11 +418,11 @@ switch ($userOption) {
                 & cscript $osppPath /unpkey:$key 2>&1 | Out-Null
                 $removedCount++
             }
-            
+
             # Rearm Office after removing all keys
             Write-Host "Rearming Office..." -ForegroundColor Yellow
             & cscript $osppPath /rearm 2>&1 | Out-Null
-            
+
             Write-Host "Removed $removedCount of $($keysToRemove.Count) product key(s)." -ForegroundColor Green
             Write-Host "Office has been rearmed. You will need to install a new product key to use Office." -ForegroundColor Green
         }
@@ -451,8 +453,180 @@ switch ($userOption) {
         Write-Host "Please wait..."
         Start-Process -FilePath "C:\Program Files\Common Files\Microsoft Shared\ClickToRun\OfficeClickToRun.exe" -ArgumentList "platform=x64", "productstoremove=AllProducts" -Wait
     }
-    
+
+    "7" {
+        Process-ActivationKeysFromCSV -OSPPPath $osppPath
+        break
+    }
+
     default {
         Write-Warning "Unknown option selected."
+    }
+}
+
+function Process-ActivationKeysFromCSV {
+    param (
+            [Parameter(Mandatory=$true)]
+            [string]$OSPPPath
+    )
+    # No return value, directly process and modify the CSV file
+    # Note: Perfect Ctrl+C handling in PowerShell is complex, this implementation focuses on core functionality
+    # User interruption handling can be improved in future versions with more sophisticated mechanisms
+
+    Write-Host "Process Activation Keys from CSV in batch" -ForegroundColor Cyan
+    Write-Host "==============================" -ForegroundColor Cyan
+
+    # Get CSV file path
+    # Load assembly and create dialog
+    Add-Type -AssemblyName System.Windows.Forms
+    $dialog = New-Object System.Windows.Forms.OpenFileDialog
+    $dialog.Title = "Select a file"
+    $dialog.Filter = "All Files (*.*)|*.*"
+    $dialog.ShowDialog()
+
+    if ([string]::IsNullOrEmpty($dialog.FileName)) {
+        Write-Host "No file selected. Operation cancelled." -ForegroundColor Yellow
+        return
+    }
+
+    if (-not (Test-Path $dialog.FileName)) {
+        Write-Host "Selected file does not exist." -ForegroundColor Red
+        return
+    }
+
+    try {
+      $csvData = Import-Csv -Path $dialog.FileName -ErrorAction Stop
+    } catch {
+    	Write-Host "Unable to read CSV file: $_" -ForegroundColor Red
+    	return
+    }
+
+    if ($csvData.Count -eq 0) {
+    	Write-Host "CSV file is empty, no data to process" -ForegroundColor Yellow
+    	return
+    }
+
+    $requiredColumns = @('key', 'barcode', 'condition')
+    $missingColumns = $requiredColumns | Where-Object { $_ -notin $csvData[0].PSObject.Properties.Name }
+
+    if ($missingColumns.Count -gt 0) {
+    	Write-Host "CSV file format error, must contain key, barcode, and condition columns. Missing columns: $($missingColumns -join ', ')" -ForegroundColor Red
+    	return
+    }
+
+    $firstEmptyConditionIndex = -1
+    for ($i = 0; $i -lt $csvData.Count; $i++) {
+    	$conditionValue = $csvData[$i].condition
+    	if ([string]::IsNullOrWhiteSpace($conditionValue)) {
+    		$firstEmptyConditionIndex = $i
+    		break
+    	}
+    }
+
+    # If all condition fields are not empty
+    if ($firstEmptyConditionIndex -eq -1) {
+        Write-Host "Keys exhausted, no keys available" -ForegroundColor Yellow
+        return
+    }
+
+    # Start processing from the first row with empty condition
+    $processedCount = 0
+    $licenseFound = $false
+
+    for ($i = $firstEmptyConditionIndex; $i -lt $csvData.Count; $i++) {
+        $row = $csvData[$i]
+        $key = $row.key
+
+        # Validate key is not empty
+        if ([string]::IsNullOrEmpty($key)) {
+            Write-Host "Skipping row $($i+1): key is empty" -ForegroundColor Yellow
+            continue
+        }
+
+        # Validate key format (Office product key format: XXXXX-XXXXX-XXXXX-XXXXX-XXXXX)
+        $key = $key.Trim()
+        if ($key -notmatch '^([A-Za-z0-9]{5}-){4}[A-Za-z0-9]{5}$') {
+            Write-Host "Skipping row $($i+1): key format invalid" -ForegroundColor Yellow
+            continue
+        }
+
+        Write-Host "Processing row $($i+1) key: $key" -ForegroundColor Green
+
+        # Temporarily activate Office using this key
+        try {
+            $activationSuccess = $false
+            try {
+                & cscript $OSPPPath /inpkey:$key 2>&1 | Out-Null
+                & cscript $OSPPPath /act 2>&1 | Out-Null
+                $activationSuccess = $true
+            } catch {
+                $activationSuccess = $false
+            }
+
+            if (-not $activationSuccess) {
+                Write-Host "Activation failed, marking as BROKEN" -ForegroundColor Red
+                $csvData[$i].condition = 'BROKEN'
+                $processedCount++
+                continue
+            }
+
+        } catch {
+            Write-Host "Exception occurred during activation, marking as BROKEN" -ForegroundColor Red
+            $csvData[$i].condition = 'BROKEN'
+            $processedCount++
+            continue
+        }
+
+        # Check license status
+        try {
+            $statusOutput = & cscript $osppPath /dstatus 2>&1
+            $licenseStatus = $statusOutput | Select-String "LICENSE STATUS:"
+
+            if ($licenseStatus -match 'LICENSED') {
+                Write-Host "Found valid activation code! Please enter item number from order:" -ForegroundColor Green
+                do {
+                    $itemNumber = Read-Host "Item Number"
+                    if ([string]::IsNullOrEmpty($itemNumber)) {
+                        Write-Host "Item number cannot be empty. Please enter a valid item number." -ForegroundColor Red
+                    }
+                } while ([string]::IsNullOrEmpty($itemNumber))
+                $csvData[$i].condition = $itemNumber
+
+                # Write updated data back to original CSV file
+                try {
+                    $csvData | Export-Csv -Path $dialog.FileName -NoTypeInformation -Encoding UTF8
+                    Write-Host "Successfully wrote results with item number back to CSV file" -ForegroundColor Green
+                } catch {
+                    Write-Host "Failed to write back to CSV file: $_" -ForegroundColor Red
+                }
+
+                $licenseFound = $true
+                break
+            } elseif ($licenseStatus -match 'OOB_GRACE') {
+                Write-Host "Activation code invalid (OOB_GRACE), marking as BROKEN" -ForegroundColor Red
+                $csvData[$i].condition = 'BROKEN'
+                $processedCount++
+            } else {
+                Write-Host "Unknown license status, marking as UNKNOWN" -ForegroundColor Yellow
+                $csvData[$i].condition = "UNKNOWN_$($licenseStatus.Trim())"
+                $processedCount++
+            }
+
+        } catch {
+            Write-Host "Exception occurred while checking license status, marking as BROKEN" -ForegroundColor Red
+            $csvData[$i].condition = 'BROKEN'
+            $processedCount++
+        }
+    }
+
+    # If no LICENSED status was encountered during processing, write back to file
+    if (-not $licenseFound) {
+        try {
+            $csvData | Export-Csv -Path $dialog.FileName -NoTypeInformation -Encoding UTF8
+            Write-Host "Processing completed, results written back to CSV file" -ForegroundColor Green
+            Write-Host "Processed $processedCount rows of data" -ForegroundColor Green
+        } catch {
+            Write-Host "Failed to write back to CSV file: $_" -ForegroundColor Red
+        }
     }
 }

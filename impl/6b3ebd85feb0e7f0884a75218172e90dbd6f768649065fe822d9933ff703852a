@@ -1,3 +1,4 @@
+#!/usr/bin/env pwsh
 #get ios download url
 
 # Function to validate Apple device identifier format

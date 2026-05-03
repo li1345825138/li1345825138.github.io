@@ -1,5 +1,6 @@
+#!/usr/bin/env pwsh
 ###
-# PowerShell version of upgradePro.bat
+# Pro version 2, for debug use
 # Checks for admin rights, and elevates if needed
 # Upgrades Windows edition to Professional with built-in key
 
@@ -40,6 +41,7 @@ Write-Host "Upgrading Windows to Professional edition..."
 try {
     # Execute DISM command to upgrade Windows edition
     dism /online /set-edition:Professional /productkey:VK7JG-NPHTM-C97JM-9MPGT-3V66T /accepteula /Quiet
+    PAUSE
     shutdown /r /t 0
 } catch {
     Write-Error "An error occurred during the upgrade process: $_"
