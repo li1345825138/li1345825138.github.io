@@ -40,7 +40,7 @@ function Invoke-RemoteScript {
 }
 
 function Get-MenuChoice {
-    $choice = Read-Host "Please enter option number (0-4)"
+    $choice = Read-Host "Please enter option number (0-5)"
     return $choice.Trim()
 }
 
