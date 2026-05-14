@@ -15,6 +15,7 @@ function Show-MainMenu {
     Write-Host "2) System Activation"
     Write-Host "3) Office Management"
     Write-Host "4) Driver Management"
+    Write-Host "5) System Hardware Assessment"
     Write-Host ""
     Write-Host "0) Exit"
     Write-Host ""
@@ -68,6 +69,10 @@ do {
             Invoke-RemoteScript -Url "$baseUrl/driver"
         }
         "5" {
+            Write-Host "Starting System Hardware Assessment..."
+            Invoke-RemoteScript -Url "$baseUrl/winsat_tool"
+        }
+        "6" {
             Write-Host "Starting Apple device support..."
             Invoke-RemoteScript -Url "$baseUrl/apple"
         }
