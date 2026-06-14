@@ -50,20 +50,20 @@ function Find-OSPPFile {
         "C:\Program Files\Microsoft Office\Office15\OSPP.VBS",
         "C:\Program Files (x86)\Microsoft Office\Office15\OSPP.VBS"
     )
-
+    
     # Check common paths first
     foreach ($path in $commonPaths) {
         if (Test-Path $path) {
             return $path
         }
     }
-
+    
     # If not found in common paths, search more broadly
     $searchPaths = @(
         "C:\Program Files\Microsoft Office",
         "C:\Program Files (x86)\Microsoft Office"
     )
-
+    
     foreach ($searchPath in $searchPaths) {
         if (Test-Path $searchPath) {
             $foundFile = Get-ChildItem -Path $searchPath -Recurse -Name "OSPP.VBS" -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -653,20 +653,6 @@ switch ($userOption) {
     }
 
     "2" {
-        # Set timezone to Eastern Standard Time
-        Write-Host "Initializing..."
-
-        # Set timezone to Eastern Standard Time
-        tzutil /s "Eastern Standard Time" 2>&1 | Out-Null
-
-        # Start Windows Time service
-        Start-Service w32time -ErrorAction SilentlyContinue 2>&1 | Out-Null
-        w32tm /config /syncfromflags:manual /manualpeerlist:"time.windows.com" 2>&1 | Out-Null
-        Restart-Service w32time 2>&1 | Out-Null
-
-        # Resynchronize time
-        w32tm /resync 2>&1 | Out-Null
-
         # Get key from user
         $keyString = Read-Host "Enter Key to activate Office"
 
@@ -734,14 +720,14 @@ switch ($userOption) {
         try {
             Write-Host "Getting current license information..."
             $keysToRemove = Get-OfficeProductKeys -OSPPPath $osppPath
-
+            
             if ($keysToRemove.Count -eq 0) {
                 Write-Host "No product keys found to remove." -ForegroundColor Yellow
                 break
             }
-
+            
             Write-Host "Found $($keysToRemove.Count) product key(s) to remove." -ForegroundColor Yellow
-
+            
             # Remove each key
             $removedCount = 0
             foreach ($key in $keysToRemove) {
@@ -749,11 +735,11 @@ switch ($userOption) {
                 & cscript $osppPath /unpkey:$key 2>&1 | Out-Null
                 $removedCount++
             }
-
+            
             # Rearm Office after removing all keys
             Write-Host "Rearming Office..." -ForegroundColor Yellow
             & cscript $osppPath /rearm 2>&1 | Out-Null
-
+            
             Write-Host "Removed $removedCount of $($keysToRemove.Count) product key(s)." -ForegroundColor Green
             Write-Host "Office has been rearmed. You will need to install a new product key to use Office." -ForegroundColor Green
         }

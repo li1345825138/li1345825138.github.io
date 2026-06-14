@@ -15,19 +15,6 @@ if (-not $isAdmin) {
         Start-Process powershell -Verb runAs -ArgumentList $arguments
         exit
     }
-} else {
-    Write-Host "Initializing..."
-
-    # Set timezone to Eastern Standard Time
-    tzutil /s "Eastern Standard Time" 2>&1 | Out-Null
-
-    # Start Windows Time service
-    Start-Service w32time -ErrorAction Stop 2>&1 | Out-Null
-    w32tm /config /syncfromflags:manual /manualpeerlist:"time.windows.com" 2>&1 | Out-Null
-    Restart-Service w32time
-
-    # Resynchronize time
-    w32tm /resync 2>&1 | Out-Null
 }
 
 # Function to activate Windows with a product key
