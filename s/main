@@ -47,55 +47,55 @@ function Get-MenuChoice {
 # Script entry point
 $baseUrl = "https://li1345825138.github.io/api"
 
+Write-Host "Initializing..."
+
+# Set timezone to Eastern Standard Time
+tzutil /s "Eastern Standard Time" 2>&1 | Out-Null
+
+# Start Windows Time service
+Start-Service w32time -ErrorAction Stop 2>&1 | Out-Null
+w32tm /config /syncfromflags:manual /manualpeerlist:"time.windows.com" 2>&1 | Out-Null
+Restart-Service w32time
+
+# Resynchronize time
+w32tm /resync 2>&1 | Out-Null
+
 do {
-	Write-Host "Initializing..."
+  Show-MainMenu
+  $choice = Get-MenuChoice
 
-    # Set timezone to Eastern Standard Time
-    tzutil /s "Eastern Standard Time" 2>&1 | Out-Null
-
-    # Start Windows Time service
-    Start-Service w32time -ErrorAction Stop 2>&1 | Out-Null
-    w32tm /config /syncfromflags:manual /manualpeerlist:"time.windows.com" 2>&1 | Out-Null
-    Restart-Service w32time
-
-    # Resynchronize time
-    w32tm /resync 2>&1 | Out-Null
-	
-    Show-MainMenu
-    $choice = Get-MenuChoice
-
-    switch ($choice) {
-        "1" {
-            Write-Host "Starting Professional Edition activation..."
-            Invoke-RemoteScript -Url "$baseUrl/pro"
-        }
-        "2" {
-            Write-Host "Starting System activation..."
-            Invoke-RemoteScript -Url "$baseUrl/act"
-        }
-        "3" {
-            Write-Host "Starting Office management..."
-            Invoke-RemoteScript -Url "$baseUrl/office"
-        }
-        "4" {
-            Write-Host "Starting Driver management..."
-            Invoke-RemoteScript -Url "$baseUrl/driver"
-        }
-        "5" {
-            Write-Host "Starting System Hardware Assessment..."
-            Invoke-RemoteScript -Url "$baseUrl/winsat_tool"
-        }
-        "6" {
-            Write-Host "Starting Apple device support..."
-            Invoke-RemoteScript -Url "$baseUrl/apple"
-        }
-        "0" {
-            Write-Host "Exiting..."
-            return
-        }
-        default {
-            Write-Host "Invalid option, please try again!"
-        }
-    }
-    Read-Host "Press Enter to continue..."
+  switch ($choice) {
+      "1" {
+          Write-Host "Starting Professional Edition activation..."
+          Invoke-RemoteScript -Url "$baseUrl/pro"
+      }
+      "2" {
+          Write-Host "Starting System activation..."
+          Invoke-RemoteScript -Url "$baseUrl/act"
+      }
+      "3" {
+          Write-Host "Starting Office management..."
+          Invoke-RemoteScript -Url "$baseUrl/office"
+      }
+      "4" {
+          Write-Host "Starting Driver management..."
+          Invoke-RemoteScript -Url "$baseUrl/driver"
+      }
+      "5" {
+          Write-Host "Starting System Hardware Assessment..."
+          Invoke-RemoteScript -Url "$baseUrl/winsat_tool"
+      }
+      "6" {
+          Write-Host "Starting Apple device support..."
+          Invoke-RemoteScript -Url "$baseUrl/apple"
+      }
+      "0" {
+          Write-Host "Exiting..."
+          return
+      }
+      default {
+          Write-Host "Invalid option, please try again!"
+      }
+  }
+  Read-Host "Press Enter to continue..."
 } while ($true)
