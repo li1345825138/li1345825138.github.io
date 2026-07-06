@@ -6,11 +6,11 @@
 .DESCRIPTION
     Option 1 measures sequential and random read / write bandwidth for one or all fixed
     drives using the built-in `winsat disk` assessment. Option 2 reports memory
-    sequential-bandwidth using `winsat mem`, falling back to a pure-.NET benchmark
-    when WinSAT is unavailable (e.g. running under WSL).
+    bandwidth using the built-in `winsat mem` assessment. When WinSAT is unavailable
+    (e.g. running under WSL) the memory test exits with a diagnostic message.
 
 .NOTES
-    Requires Administrator privileges (needed by winsat and by large-page allocation).
+    Requires Administrator privileges (needed by winsat).
 #>
 
 # Function to check if running as administrator
@@ -171,35 +171,8 @@ function Show-MainMenu {
 
 # ─── Memory helpers ───────────────────────────────────────────────────────────
 
-# Pre-fault a managed byte[] so all pages are committed to physical RAM.
-# Without this, the first write to each demand-zero page triggers a soft page fault
-# whose cost winds up inside the timed section and deflates the bandwidth number.
-function Invoke-PreFaultBuffer {
-    param(
-        [byte[]]$Buffer,
-        [int]$Stride = 4096
-    )
-    for ($i = 0; $i -lt $Buffer.Length; $i += $Stride) {
-        $Buffer[$i] = 0
-    }
-}
-
-# Detect total L3 cache size (MB) across all CPU packages via CIM.
-function Get-L3CacheSizeMB {
-    $l3Bytes = 0
-    try {
-        $cpus = Get-CimInstance -ClassName Win32_Processor -ErrorAction Stop
-        foreach ($cpu in $cpus) {
-            $l3Bytes += [int64]$cpu.L3CacheSize * 1KB
-        }
-    } catch {
-        return 0
-    }
-    return [int]($l3Bytes / 1MB)
-}
-
-# Run `winsat mem` and collect its raw output lines in $script:_winsatOutput.
-# Returns $true on success, $false if WinSAT failed or is unavailable.
+# Run bare `winsat mem` and capture its output into $script:_winsatOutput.
+# Returns $true on success, $false otherwise.
 function Invoke-WinSATMem {
     # Reset the script-scoped output buffer so a previous run's state never leaks in
     $script:_winsatOutput = @()
@@ -209,21 +182,16 @@ function Invoke-WinSATMem {
     if (-not $winsatExe) { return $false }
 
     try {
-        # Redirect stdout (1) and stderr (2) together so we capture everything.
-        # Winsat writes a localized progress prefix (e.g. "> ") at the start of
-        # each line, optionally preceded by a UTF-8 BOM. Strip both so the
-        # resulting array is plain header / value lines we can parse.
         & winsat mem 2>&1 | ForEach-Object {
-            # $_ may be a String or ErrorRecord — coerce to plain string
-            $line = "$_"
+            # $_ may be a String or ErrorRecord — coerce to plain string and trim trailing whitespace
+            $line = ("$_").TrimEnd()
             # Strip the BOM (U+FEFF) if it appears as the first character of output
             if ($line.Length -gt 0 -and [char]::ConvertToUtf32($line, 0) -eq 0xFEFF) {
                 $line = $line.Substring(1)
             }
-            # Strip the "> " progress prefix winsat writes on most lines (not the
-            # header line, which is just the localized tool title)
+            # Discard localized progress prefixes (e.g. "> ") and empty lines
             $line = $line -replace '^>\s{0,8}', ''
-            $script:_winsatOutput += $line.TrimStart()
+            if ($line) { $script:_winsatOutput += $line }
         }
     } catch {
         return $false
@@ -239,16 +207,18 @@ function Invoke-WinSATMem {
     return $false
 }
 
-# Parse one label/value pair from the localized winsat output.
-# Handles the leading-whitespace format:
-#     Memory performance                                         34,073.51 MB/s
-# and localized equivalents (Chinese locale: 内存性能 ... MB/s).
-# Uses a deliberately permissive pattern — on a localized install we may not
-# recognize the label text, so we fall back to "first MB/s line matching a
-# pattern" rather than failing outright.
+# Parse one label/value pair from the winsat output for *memory*.
+# The memory line format is always: a localized label followed by a run of
+# 2+ spaces and then the value.  Example output on a Chinese locale:
+#     内存性能                                         34,073.51 MB/s
+# English locale:
+#     Memory performance                               34,073.51 MB/s
+#
+# We match BOTH the localized label and English label to keep this script
+# working on either system language.
 function Get-WinsatField {
     param(
-        [string]$Pattern         # regex matched against the start of the label cell (case-insensitive)
+        [string]$Pattern = 'memory|内存性能'          # regex matched against label
     )
 
     if ($null -eq $script:_winsatOutput) { return $null }
@@ -260,7 +230,6 @@ function Get-WinsatField {
         $parts = $line -split '\s{2,}', 2
         if ($parts.Count -lt 2) { continue }
         $label = $parts[0].Trim()
-        # The value cell may still have trailing units ("MB/s", "s") after a space.
         $valueCell = $parts[1].Trim()
 
         # Run the value regex ONCE and immediately capture its groups into locals.
@@ -283,88 +252,18 @@ function Get-WinsatField {
     return $null
 }
 
-# Synthetic benchmark used ONLY when `winsat mem` is unavailable.
-# Returns a hashtable: @{ SequentialRead = N; SequentialWrite = N; RandomRead = N; RandomWrite = N }
-function Invoke-SyntheticBandwidthBenchmark {
-    param(
-        [int]$SizeMB,
-        [int]$BlockSizeKB = 64
-    )
-
-    $totalBytes = [int64]$SizeMB * 1MB
-    $blockSize  = $BlockSizeKB * 1KB
-    $iterations = [int]($totalBytes / $blockSize)
-    if ($iterations -lt 1) { $iterations = 1 }
-    $sink = [byte]0
-
-    $buffer = New-Object byte[] $blockSize
-    (New-Object Random).NextBytes($buffer)
-
-    # ── Sequential Read ──
-    $source = New-Object byte[] $totalBytes
-    (New-Object Random).NextBytes($source)
-    Invoke-PreFaultBuffer -Buffer $source -Stride 4096
-    $sw = [System.Diagnostics.Stopwatch]::new()
-    $sw.Start()
-    for ($i = 0; $i -lt $iterations; $i++) { $sink += $source[$i * $blockSize] }
-    $sw.Stop()
-    $seqRead = [math]::Round($SizeMB / $sw.Elapsed.TotalSeconds, 2)
-
-    # ── Sequential Write ──
-    $target = New-Object byte[] $totalBytes
-    Invoke-PreFaultBuffer -Buffer $target -Stride 4096
-    $sw.Restart()
-    for ($i = 0; $i -lt $iterations; $i++) {
-        [System.Buffer]::BlockCopy($buffer, 0, $target, $i * $blockSize, $blockSize)
-    }
-    $sw.Stop()
-    $seqWrite = [math]::Round($SizeMB / $sw.Elapsed.TotalSeconds, 2)
-
-    # ── Random Read ──
-    $offsets = New-Object int[] $iterations
-    for ($i = 0; $i -lt $iterations; $i++) { $offsets[$i] = $i * $blockSize }
-    $rnd = New-Object Random
-    for ($i = $offsets.Length - 1; $i -gt 0; $i--) {
-        $j = $rnd.Next($i + 1)
-        $tmp = $offsets[$i]; $offsets[$i] = $offsets[$j]; $offsets[$j] = $tmp
-    }
-    (New-Object Random).NextBytes($source)
-    $sw.Restart()
-    foreach ($off in $offsets) { $sink += $source[$off] }
-    $sw.Stop()
-    $randRead = [math]::Round($SizeMB / $sw.Elapsed.TotalSeconds, 2)
-
-    # ── Random Write ──
-    Invoke-PreFaultBuffer -Buffer $target -Stride 4096
-    $sw.Restart()
-    foreach ($off in $offsets) {
-        [System.Buffer]::BlockCopy($buffer, 0, $target, $off, $blockSize)
-    }
-    $sw.Stop()
-    $randWrite = [math]::Round($SizeMB / $sw.Elapsed.TotalSeconds, 2)
-
-    # Use the sink so the JIT can't drop any of the loops
-    if ($sink -eq 255) { Write-Host "" | Out-Null }
-
-    return @{
-        SequentialRead  = $seqRead
-        SequentialWrite = $seqWrite
-        RandomRead      = $randRead
-        RandomWrite     = $randWrite
-    }
-}
-
 function Invoke-TestMemory {
     Write-Host ""
     Write-Host "=============================================================" -ForegroundColor Cyan
     Write-Host "Memory Benchmark" -ForegroundColor Cyan
     Write-Host "=============================================================" -ForegroundColor Cyan
 
+    # Show total installed RAM (informational only; failure does not affect the benchmark)
     $os = $null
     try {
         $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
     } catch {
-        Write-Host "Warning: Get-CimInstance failed ($_) — RAM/CPU size values will be `$null." -ForegroundColor Yellow
+        Write-Host "Warning: Get-CimInstance failed ($_) — RAM size will be unknown." -ForegroundColor Yellow
     }
     if ($os -ne $null) {
         $totalGB = [math]::Round($os.TotalVisibleMemorySize / 1MB, 2)
@@ -373,36 +272,33 @@ function Invoke-TestMemory {
         Write-Host "Total installed RAM: (unknown)" -ForegroundColor Gray
     }
 
-    # --- Bandwidth test — call winsat mem first, fall back to a pure-PowerShell benchmark ---
+    # Single test path: use only the official `winsat mem` tool
     $winsatOk = $false
     try {
         $winsatOk = Invoke-WinSATMem
     } catch {
-        Write-Host "Warning: Invoke-WinSATMem threw ($_) — falling back to synthetic benchmark." -ForegroundColor Yellow
+        Write-Host "Error: Invoke-WinSATMem threw ($_)." -ForegroundColor Red
         $winsatOk = $false
     }
+
     if (-not $winsatOk) {
-        Write-Host "winsat mem failed or is unavailable - switching to synthetic benchmark." -ForegroundColor Yellow
+        Write-Host "winsat mem failed or is unavailable. Possible causes:"
+        Write-Host "  1. WinSAT component is missing (e.g. WSL, Server Core)"
+        Write-Host "  2. Not running as Administrator"
+        Write-Host "  3. Group Policy disabled WinSAT"
+        return
+    }
 
-        $l3MB = Get-L3CacheSizeMB
-        if ($l3MB -gt 0) { Write-Host "Detected L3 cache: ${l3MB} MB" -ForegroundColor Gray }
-        $minWorking = [math]::Max(255, $l3MB * 2 + 1)
-        $capMB = [math]::Min(1536, $minWorking)
+    # Parse the "Memory performance  XXX.XX MB/s" line from the winsat output
+    $memResult = Get-WinsatField -Pattern 'memory|内存性能'   # '内存性能' is the Chinese locale equivalent
 
-        Write-Host "Working set: ${capMB} MB (must be > CPU L3 so we measure DRAM, not cache)." -ForegroundColor Gray
-        $synth = Invoke-SyntheticBandwidthBenchmark -SizeMB $capMB
-        Write-Host "Sequential Read:  $($synth.SequentialRead) MB/s" -ForegroundColor White
-        Write-Host "Sequential Write: $($synth.SequentialWrite) MB/s" -ForegroundColor White
-        Write-Host "Random Read:      $($synth.RandomRead) MB/s"     -ForegroundColor White
-        Write-Host "Random Write:     $($synth.RandomWrite) MB/s"    -ForegroundColor White
+    if ($memResult) {
+        Write-Host ""
+        Write-Host "Memory Performance: $($memResult.Value) $($memResult.Unit)" -ForegroundColor White
     } else {
-        # Parse the results from $script:_winsatOutput now that it's been populated
-        # Match localized headers (Chinese & English). The regex is matched against
-        # the localized label after the "> " progress prefix has been stripped.
-        $memResult = Get-WinsatField -Pattern 'memory|内存性能'
-
-        if ($memResult) { Write-Host "Memory Performance: $($memResult.Value) $($memResult.Unit)" -ForegroundColor White }
-
+        Write-Host "Warning: winsat mem completed but no 'Memory performance' line was found."
+        Write-Host "Raw output for debugging:"
+        $script:_winsatOutput | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
     }
 
     Write-Host ""
