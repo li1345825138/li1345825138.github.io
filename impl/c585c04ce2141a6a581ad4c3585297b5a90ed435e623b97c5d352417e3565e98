@@ -208,17 +208,9 @@ function Invoke-WinSATMem {
 }
 
 # Parse one label/value pair from the winsat output for *memory*.
-# The memory line format is always: a localized label followed by a run of
-# 2+ spaces and then the value.  Example output on a Chinese locale:
-#     内存性能                                         34,073.51 MB/s
-# English locale:
-#     Memory performance                               34,073.51 MB/s
-#
-# We match BOTH the localized label and English label to keep this script
-# working on either system language.
 function Get-WinsatField {
     param(
-        [string]$Pattern = 'memory|内存性能'          # regex matched against label
+        [string]$Pattern = 'memory'          # regex matched against label
     )
 
     if ($null -eq $script:_winsatOutput) { return $null }
