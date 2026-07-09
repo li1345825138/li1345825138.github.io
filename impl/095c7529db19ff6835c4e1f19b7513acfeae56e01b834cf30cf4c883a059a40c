@@ -174,27 +174,47 @@ function Show-MainMenu {
 # Run bare `winsat mem` and capture its output into $script:_winsatOutput.
 # Returns $true on success, $false otherwise.
 function Invoke-WinSATMem {
-    # Reset the script-scoped output buffer so a previous run's state never leaks in
-    $script:_winsatOutput = @()
+    # Reset the script-scoped output buffer so a previous run's state never leaks in.
+    # Use List[string] instead of += on a plain array — avoids O(n²) copy when winsat
+    # emits a long output (e.g. debug/helper modes).
+    $script:_winsatOutput = [System.Collections.Generic.List[string]]::new()
 
     # Bail out fast if winsat isn't on this machine (e.g. running under WSL)
     $winsatExe = Get-Command winsat -ErrorAction SilentlyContinue
     if (-not $winsatExe) { return $false }
 
+    # Run winsat mem in an ISOLATED child process. The mem benchmark allocates large
+    # memory blocks and high-priority threads; on some systems (nested virt, certain
+    # storage drivers, 32-bit PowerShell) it can trigger a native access violation /
+    # OOM that escapes try/catch and crashes the host PowerShell — the "flash crash".
+    # Isolating it means child death no longer takes down this script.
+    $outFile = [IO.Path]::GetTempFileName()
+    $errFile = [IO.Path]::GetTempFileName()
     try {
-        & winsat mem 2>&1 | ForEach-Object {
+        $proc = Start-Process -FilePath 'winsat' -ArgumentList 'mem' `
+            -RedirectStandardOutput $outFile `
+            -RedirectStandardError  $errFile `
+            -Wait -PassThru -NoNewWindow
+
+        # Non-zero exit => host stays alive, we just report failure below
+        if ($proc.ExitCode -ne 0) { return $false }
+
+        $raw = Get-Content $outFile -ErrorAction SilentlyContinue
+        foreach ($line in $raw) {
             # $_ may be a String or ErrorRecord — coerce to plain string and trim trailing whitespace
-            $line = ("$_").TrimEnd()
+            $line = ("$line").TrimEnd()
             # Strip the BOM (U+FEFF) if it appears as the first character of output
             if ($line.Length -gt 0 -and [char]::ConvertToUtf32($line, 0) -eq 0xFEFF) {
                 $line = $line.Substring(1)
             }
             # Discard localized progress prefixes (e.g. "> ") and empty lines
             $line = $line -replace '^>\s{0,8}', ''
-            if ($line) { $script:_winsatOutput += $line }
+            if ($line) { $script:_winsatOutput.Add($line) }
         }
     } catch {
         return $false
+    } finally {
+        Remove-Item $outFile, $errFile -ErrorAction SilentlyContinue
     }
 
     # Look for the featured "Memory performance  XXX.XX MB/s" line. WinSAT writes
@@ -216,10 +236,11 @@ function Get-WinsatField {
     if ($null -eq $script:_winsatOutput) { return $null }
 
     foreach ($line in $script:_winsatOutput) {
-        # Split each line into a label + value cell on a run of 2+ spaces.
-        # This works regardless of whether the label is ASCII or CJK because
-        # the padding between label and value is *always* whitespace.
-        $parts = $line -split '\s{2,}', 2
+        # Split each line into a label + value cell on a run of 2+ whitespace
+        # characters (spaces or tabs). This works regardless of whether the label
+        # is ASCII or CJK because the padding between label and value is *always*
+        # whitespace — tabular right-justified columns guarantee >=2 chars gap.
+        $parts = $line -split '[\t\s]{2,}', 2
         if ($parts.Count -lt 2) { continue }
         $label = $parts[0].Trim()
         $valueCell = $parts[1].Trim()
@@ -278,17 +299,28 @@ function Invoke-TestMemory {
         Write-Host "  1. WinSAT component is missing (e.g. WSL, Server Core)"
         Write-Host "  2. Not running as Administrator"
         Write-Host "  3. Group Policy disabled WinSAT"
+        Write-Host "  4. WinSAT crashed (native OOM / access violation) — see Windows Event Log"
         return
     }
 
-    # Parse the "Memory performance  XXX.XX MB/s" line from the winsat output
-    $memResult = Get-WinsatField -Pattern 'memory|内存性能'   # '内存性能' is the Chinese locale equivalent
+    # Match on the full "memory performance" label (case-insensitive) to avoid false
+    # hits on "Physical Memory Available" when only "memory" is used as the pattern.
+    $memResult = Get-WinsatField -Pattern 'memory\s+performance'
 
+    Write-Host ""
     if ($memResult) {
-        Write-Host ""
-        Write-Host "Memory Performance: $($memResult.Value) $($memResult.Unit)" -ForegroundColor White
+        Write-Host "Memory Performance : $($memResult.Value) $($memResult.Unit)" -ForegroundColor White
     } else {
         Write-Host "Warning: winsat mem completed but no 'Memory performance' line was found."
+    }
+
+    # Show additional physical-memory metrics if present (informational, non-fatal).
+    $availResult = Get-WinsatField -Pattern 'physical\s+memory\s+available'
+    if ($availResult) {
+        Write-Host "Physical Available : $($availResult.Value) $($availResult.Unit)" -ForegroundColor Gray
+    }
+
+    if (-not $memResult) {
         Write-Host "Raw output for debugging:"
         $script:_winsatOutput | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
     }
